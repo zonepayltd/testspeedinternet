@@ -1,0 +1,125 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: #ffffff;
+  --foreground: #0f172a;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0b1120;
+    --foreground: #e2e8f0;
+  }
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  color: var(--foreground);
+  background: var(--background);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* Accessible focus ring for keyboard users */
+:focus-visible {
+  outline: 2px solid theme("colors.brand.500");
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Blog article body (rendered Markdown) */
+.post-body {
+  color: #334155;
+  line-height: 1.75;
+}
+.post-body h2 {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 2rem 0 0.75rem;
+}
+.post-body h3 {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 1.5rem 0 0.5rem;
+}
+.post-body p {
+  margin: 0.85rem 0;
+}
+.post-body ul,
+.post-body ol {
+  margin: 0.85rem 0;
+  padding-left: 1.5rem;
+}
+.post-body ul {
+  list-style: disc;
+}
+.post-body ol {
+  list-style: decimal;
+}
+.post-body li {
+  margin: 0.35rem 0;
+}
+.post-body a {
+  color: #2563eb;
+  text-decoration: underline;
+}
+.post-body blockquote {
+  border-left: 4px solid #bfdbfe;
+  padding-left: 1rem;
+  color: #475569;
+  font-style: italic;
+  margin: 1rem 0;
+}
+.post-body code {
+  background: #f1f5f9;
+  padding: 0.15em 0.4em;
+  border-radius: 4px;
+  font-size: 0.9em;
+}
+.post-body pre {
+  background: #0f172a;
+  color: #e2e8f0;
+  padding: 1rem;
+  border-radius: 12px;
+  overflow: auto;
+  margin: 1rem 0;
+}
+.post-body pre code {
+  background: transparent;
+  padding: 0;
+}
+.post-body img {
+  border-radius: 12px;
+  margin: 1rem 0;
+  max-width: 100%;
+}
+.post-body > :first-child {
+  margin-top: 0;
+}
+
+/* International phone input (react-phone-number-input) */
+.tsi-phone .PhoneInputCountryIcon {
+  width: 1.5em;
+  height: 1.05em;
+  border-radius: 3px;
+  box-shadow: 0 0 0 1px rgba(15, 23, 42, 0.08);
+  overflow: hidden;
+}
+.tsi-phone .PhoneInputCountrySelectArrow {
+  color: #94a3b8;
+  opacity: 1;
+  margin-left: 0.3em;
+}
+.tsi-phone .PhoneInputCountry {
+  margin-right: 0.25rem;
+}
+.tsi-phone .PhoneInputInput:focus-visible {
+  outline: none;
+}
