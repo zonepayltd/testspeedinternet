@@ -7,8 +7,15 @@ export const dynamic = "force-dynamic";
 
 export async function GET() {
   if (!(await requireAdmin())) return unauthorized();
-  const config = await getSiteConfig();
-  return Response.json({ ok: true, config });
+  try {
+    const config = await getSiteConfig();
+    return Response.json({ ok: true, config });
+  } catch (err) {
+    return Response.json(
+      { ok: false, error: err instanceof Error ? err.message : "Failed to load settings" },
+      { status: 200 }
+    );
+  }
 }
 
 export async function PUT(request: Request) {
@@ -24,7 +31,8 @@ export async function PUT(request: Request) {
 
   const str = (v: unknown) => String(v ?? "").trim();
   const bool = (v: unknown) => v === true || v === "true";
-  await saveSiteConfig({
+  try {
+    await saveSiteConfig({
     googleVerification: str(b.googleVerification),
     bingVerification: str(b.bingVerification),
     gaMeasurementId: str(b.gaMeasurementId),
@@ -41,8 +49,13 @@ export async function PUT(request: Request) {
     adInContentSlot: str(b.adInContentSlot),
     adSidebarLeftSlot: str(b.adSidebarLeftSlot),
     adSidebarRightSlot: str(b.adSidebarRightSlot),
-    adFooterSlot: str(b.adFooterSlot),
-  });
-
-  return Response.json({ ok: true });
+      adFooterSlot: str(b.adFooterSlot),
+    });
+    return Response.json({ ok: true });
+  } catch (err) {
+    return Response.json(
+      { ok: false, error: err instanceof Error ? err.message : "Failed to save settings" },
+      { status: 200 }
+    );
+  }
 }
