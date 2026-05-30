@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Save, Trash2, Loader2, ArrowLeft, ExternalLink } from "lucide-react";
 import Link from "next/link";
+import MarkdownEditor from "@/components/admin/MarkdownEditor";
 
 type Form = {
   title: string;
@@ -161,23 +162,42 @@ export default function PostEditor({ postId }: { postId?: string }) {
           <label className="block">
             <span className="mb-1.5 block text-sm font-semibold text-slate-700">Cover image URL</span>
             <input className={input} value={form.coverImage} onChange={(e) => set("coverImage", e.target.value)} placeholder="https://…" />
+            {form.coverImage && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={form.coverImage}
+                alt="Cover preview"
+                className="mt-2 h-28 w-full rounded-lg border border-slate-200 object-cover"
+                onError={(e) => ((e.currentTarget.style.display = "none"))}
+              />
+            )}
           </label>
           <label className="block">
             <span className="mb-1.5 block text-sm font-semibold text-slate-700">Tags (comma separated)</span>
             <input className={input} value={form.tags} onChange={(e) => set("tags", e.target.value)} placeholder="wifi, speed, tips" />
+            {form.tags.trim() && (
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                {form.tags
+                  .split(",")
+                  .map((t) => t.trim())
+                  .filter(Boolean)
+                  .map((t) => (
+                    <span key={t} className="rounded-full bg-brand-50 px-2.5 py-0.5 text-xs font-medium text-brand-700">
+                      {t}
+                    </span>
+                  ))}
+              </div>
+            )}
           </label>
         </div>
 
-        <label className="block">
-          <span className="mb-1.5 block text-sm font-semibold text-slate-700">Content (Markdown)</span>
-          <textarea
-            className={`${input} resize-y font-mono`}
-            rows={16}
-            value={form.content}
-            onChange={(e) => set("content", e.target.value)}
-            placeholder={"## Heading\n\nWrite your article in **Markdown**…"}
-          />
-        </label>
+        <div className="block">
+          <span className="mb-1.5 block text-sm font-semibold text-slate-700">Content</span>
+          <MarkdownEditor value={form.content} onChange={(v) => set("content", v)} />
+          <span className="mt-1.5 block text-xs text-slate-400">
+            Use the toolbar to add images, links and headings. Content is written in Markdown.
+          </span>
+        </div>
       </div>
 
       {/* Actions */}
