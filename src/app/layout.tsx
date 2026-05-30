@@ -13,6 +13,11 @@ const inter = Inter({
 
 const SITE_URL = "https://testspeedinternet.com";
 
+// Render every public page on demand so config-driven head tags (Google Search
+// Console verification, Analytics, AdSense) always reflect the latest values
+// saved in the admin panel, with no rebuild required.
+export const dynamic = "force-dynamic";
+
 export async function generateMetadata(): Promise<Metadata> {
   const cfg = await getSiteConfig();
   return {
