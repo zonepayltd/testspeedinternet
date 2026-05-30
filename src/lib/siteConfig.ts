@@ -20,6 +20,9 @@ export type SiteConfig = {
   adSidebarLeftSlot: string;
   adSidebarRightSlot: string;
   adFooterSlot: string;
+  socials: { platform: string; url: string }[];
+  trustpilotUrl: string;
+  trustpilotBusinessId: string;
 };
 
 const DEFAULTS: SiteConfig = {
@@ -40,6 +43,9 @@ const DEFAULTS: SiteConfig = {
   adSidebarLeftSlot: "",
   adSidebarRightSlot: "",
   adFooterSlot: "",
+  socials: [],
+  trustpilotUrl: "",
+  trustpilotBusinessId: "",
 };
 
 let cache: SiteConfig | null = null;
@@ -86,5 +92,8 @@ export function publicConfig(c: SiteConfig) {
     adSidebarLeftSlot: c.adSidebarLeftSlot,
     adSidebarRightSlot: c.adSidebarRightSlot,
     adFooterSlot: c.adFooterSlot,
+    socials: Array.isArray(c.socials) ? c.socials : [],
+    trustpilotUrl: c.trustpilotUrl || "",
+    trustpilotBusinessId: c.trustpilotBusinessId || "",
   };
 }

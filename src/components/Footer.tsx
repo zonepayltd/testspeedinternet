@@ -1,13 +1,8 @@
 import Link from "next/link";
-import {
-  Gauge,
-  Facebook,
-  Twitter,
-  Instagram,
-  Youtube,
-  Mail,
-} from "lucide-react";
+import { Gauge, Mail } from "lucide-react";
 import AppDownloads from "@/components/AppDownloads";
+import SocialLinks from "@/components/SocialLinks";
+import Trustpilot from "@/components/Trustpilot";
 
 const FOOTER_SECTIONS = [
   {
@@ -43,13 +38,6 @@ const FOOTER_SECTIONS = [
   },
 ] as const;
 
-const SOCIAL_LINKS = [
-  { href: "https://twitter.com", label: "Twitter / X", Icon: Twitter },
-  { href: "https://facebook.com", label: "Facebook", Icon: Facebook },
-  { href: "https://instagram.com", label: "Instagram", Icon: Instagram },
-  { href: "https://youtube.com", label: "YouTube", Icon: Youtube },
-] as const;
-
 export default function Footer() {
   const year = new Date().getFullYear();
 
@@ -74,19 +62,10 @@ export default function Footer() {
               on any device.
             </p>
 
-            <div className="mt-5 flex items-center gap-2">
-              {SOCIAL_LINKS.map(({ href, label, Icon }) => (
-                <a
-                  key={label}
-                  href={href}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  aria-label={label}
-                  className="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 transition-colors hover:border-brand-300 hover:text-brand-600"
-                >
-                  <Icon className="h-4 w-4" aria-hidden="true" />
-                </a>
-              ))}
+            <SocialLinks />
+
+            <div className="mt-4">
+              <Trustpilot />
             </div>
 
             <a

@@ -35,6 +35,11 @@ export async function generateMetadata(): Promise<Metadata> {
       "wifi speed test",
     ],
     applicationName: "TestSpeedInternet",
+    authors: [{ name: "ZONEPAY LTD" }],
+    creator: "ZONEPAY LTD",
+    publisher: "ZONEPAY LTD",
+    category: "technology",
+    formatDetection: { telephone: false, email: false, address: false },
     alternates: { canonical: "/" },
     openGraph: {
       type: "website",
@@ -76,9 +81,49 @@ export default async function RootLayout({
   const cfg = await getSiteConfig();
   const gaId = cfg.gaMeasurementId;
 
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "Organization",
+        "@id": `${SITE_URL}/#organization`,
+        name: "Test Speed Internet",
+        legalName: "ZONEPAY LTD",
+        url: SITE_URL,
+        logo: `${SITE_URL}/icon.svg`,
+        email: "hello@testspeedinternet.com",
+      },
+      {
+        "@type": "WebSite",
+        "@id": `${SITE_URL}/#website`,
+        url: SITE_URL,
+        name: "Test Speed Internet",
+        description:
+          "Free internet speed test. Check your download speed, upload speed, ping and latency in real time on any device.",
+        publisher: { "@id": `${SITE_URL}/#organization` },
+        inLanguage: "en",
+      },
+      {
+        "@type": "WebApplication",
+        "@id": `${SITE_URL}/#app`,
+        name: "Test Speed Internet",
+        url: SITE_URL,
+        applicationCategory: "UtilitiesApplication",
+        operatingSystem: "Any",
+        browserRequirements: "Requires a modern web browser",
+        offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
+        publisher: { "@id": `${SITE_URL}/#organization` },
+      },
+    ],
+  };
+
   return (
     <html lang="en" data-scroll-behavior="smooth" className={inter.variable}>
       <body className="flex min-h-screen flex-col bg-white text-slate-900 antialiased">
+        <Script id="ld-json" type="application/ld+json" strategy="beforeInteractive">
+          {JSON.stringify(jsonLd)}
+        </Script>
+
         <SiteShell>{children}</SiteShell>
 
         {gaId && (

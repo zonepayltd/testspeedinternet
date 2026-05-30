@@ -4,5 +4,4 @@ export const COMPANY = {
   legalName: "ZONEPAY LTD",
   siteUrl: "https://testspeedinternet.com",
   email: "hello@testspeedinternet.com",
-  supportEmail: "support@testspeedinternet.com",
 } as const;

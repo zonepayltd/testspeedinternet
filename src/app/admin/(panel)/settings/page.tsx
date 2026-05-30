@@ -2,7 +2,10 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Save, Loader2, Search, BarChart3, ShieldCheck, Check, Smartphone, MonitorPlay } from "lucide-react";
+import { Save, Loader2, Search, BarChart3, ShieldCheck, Check, Smartphone, MonitorPlay, Share2, Plus, X, Star } from "lucide-react";
+import { SOCIAL_PLATFORMS } from "@/lib/socials";
+
+type Social = { platform: string; url: string };
 
 type Config = {
   googleVerification: string;
@@ -22,6 +25,9 @@ type Config = {
   adSidebarLeftSlot: string;
   adSidebarRightSlot: string;
   adFooterSlot: string;
+  socials: Social[];
+  trustpilotUrl: string;
+  trustpilotBusinessId: string;
 };
 
 const EMPTY: Config = {
@@ -42,6 +48,9 @@ const EMPTY: Config = {
   adSidebarLeftSlot: "",
   adSidebarRightSlot: "",
   adFooterSlot: "",
+  socials: [],
+  trustpilotUrl: "",
+  trustpilotBusinessId: "",
 };
 
 export default function AdminSettingsPage() {
@@ -61,6 +70,22 @@ export default function AdminSettingsPage() {
 
   const set = (k: keyof Config, v: string | boolean) => {
     setConfig((c) => ({ ...c, [k]: v }));
+    setSaved(false);
+  };
+
+  const addSocial = () => {
+    setConfig((c) => ({ ...c, socials: [...c.socials, { platform: "website", url: "" }] }));
+    setSaved(false);
+  };
+  const updateSocial = (i: number, patch: Partial<Social>) => {
+    setConfig((c) => ({
+      ...c,
+      socials: c.socials.map((s, idx) => (idx === i ? { ...s, ...patch } : s)),
+    }));
+    setSaved(false);
+  };
+  const removeSocial = (i: number) => {
+    setConfig((c) => ({ ...c, socials: c.socials.filter((_, idx) => idx !== i) }));
     setSaved(false);
   };
 
@@ -169,6 +194,61 @@ export default function AdminSettingsPage() {
             </Link>
             .
           </div>
+        </Section>
+
+        {/* Social links */}
+        <Section icon={Share2} title="Social links" desc="Icons shown in the footer. Add only the networks you actually use.">
+          <div className="space-y-3">
+            {config.socials.length === 0 && (
+              <p className="text-sm text-slate-400">No social links yet. Add one below.</p>
+            )}
+            {config.socials.map((s, i) => (
+              <div key={i} className="flex items-center gap-2">
+                <select
+                  className={`${input} max-w-[170px]`}
+                  value={s.platform}
+                  onChange={(e) => updateSocial(i, { platform: e.target.value })}
+                >
+                  {SOCIAL_PLATFORMS.map((p) => (
+                    <option key={p.value} value={p.value}>
+                      {p.label}
+                    </option>
+                  ))}
+                </select>
+                <input
+                  className={input}
+                  value={s.url}
+                  onChange={(e) => updateSocial(i, { url: e.target.value })}
+                  placeholder="https://…"
+                />
+                <button
+                  type="button"
+                  onClick={() => removeSocial(i)}
+                  aria-label="Remove"
+                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-slate-200 text-slate-400 transition-colors hover:border-red-300 hover:text-red-500"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+            ))}
+            <button
+              type="button"
+              onClick={addSocial}
+              className="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-600 transition-colors hover:border-brand-300 hover:text-brand-600"
+            >
+              <Plus className="h-4 w-4" /> Add social link
+            </button>
+          </div>
+        </Section>
+
+        {/* Trustpilot */}
+        <Section icon={Star} title="Trustpilot" desc="Show a Trustpilot link and live review widget in the footer. Fill these in after you claim your profile on Trustpilot.">
+          <Field label="Trustpilot profile URL" hint="Your public review page, e.g. https://www.trustpilot.com/review/testspeedinternet.com">
+            <input className={input} value={config.trustpilotUrl} onChange={(e) => set("trustpilotUrl", e.target.value)} placeholder="https://www.trustpilot.com/review/testspeedinternet.com" />
+          </Field>
+          <Field label="Business Unit ID" hint="From Trustpilot → Integrations → TrustBox. Needed to load reviews automatically. Leave empty to show just the link.">
+            <input className={input} value={config.trustpilotBusinessId} onChange={(e) => set("trustpilotBusinessId", e.target.value)} placeholder="e.g. 5f2a…" />
+          </Field>
         </Section>
       </div>
 

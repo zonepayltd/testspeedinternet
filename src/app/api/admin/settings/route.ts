@@ -50,6 +50,16 @@ export async function PUT(request: Request) {
     adSidebarLeftSlot: str(b.adSidebarLeftSlot),
     adSidebarRightSlot: str(b.adSidebarRightSlot),
       adFooterSlot: str(b.adFooterSlot),
+      socials: Array.isArray(b.socials)
+        ? (b.socials as unknown[])
+            .map((s) => {
+              const o = (s || {}) as Record<string, unknown>;
+              return { platform: str(o.platform) || "website", url: str(o.url) };
+            })
+            .filter((s) => s.url)
+        : [],
+      trustpilotUrl: str(b.trustpilotUrl),
+      trustpilotBusinessId: str(b.trustpilotBusinessId),
     });
     return Response.json({ ok: true });
   } catch (err) {

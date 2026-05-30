@@ -22,8 +22,8 @@ const CHANNELS = [
     icon: LifeBuoy,
     title: "Support",
     text: "Having trouble with the speed test or a tool? Let us know.",
-    action: COMPANY.supportEmail,
-    href: `mailto:${COMPANY.supportEmail}`,
+    action: COMPANY.email,
+    href: `mailto:${COMPANY.email}`,
   },
 ];
 
