@@ -3,6 +3,23 @@
 import "server-only";
 import { initializeApp, getApps, cert, type App } from "firebase-admin/app";
 import { getFirestore, type Firestore } from "firebase-admin/firestore";
+import fs from "node:fs";
+import path from "node:path";
+
+type ServiceAccount = { project_id?: string; client_email?: string; private_key?: string };
+
+/** Service account from FIREBASE_SERVICE_ACCOUNT (JSON text) or FIREBASE_SERVICE_ACCOUNT_FILE (path to the key file Firebase gives you). */
+function serviceAccountFromEnv(): ServiceAccount | null {
+  try {
+    if (process.env.FIREBASE_SERVICE_ACCOUNT) return JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT) as ServiceAccount;
+    const file = process.env.FIREBASE_SERVICE_ACCOUNT_FILE;
+    if (file) return JSON.parse(fs.readFileSync(path.resolve(process.cwd(), file), "utf8")) as ServiceAccount;
+  } catch {
+    /* fall back to the individual variables */
+  }
+  return null;
+}
+const SA = serviceAccountFromEnv();
 
 let app: App | undefined;
 
@@ -39,9 +56,9 @@ export function getAdminApp(): App {
     return app;
   }
 
-  const projectId = process.env.FIREBASE_PROJECT_ID;
-  const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
-  const privateKey = loadPrivateKey();
+  const projectId = process.env.FIREBASE_PROJECT_ID || SA?.project_id;
+  const clientEmail = process.env.FIREBASE_CLIENT_EMAIL || SA?.client_email;
+  const privateKey = process.env.FIREBASE_PRIVATE_KEY || process.env.FIREBASE_PRIVATE_KEY_BASE64 ? loadPrivateKey() : SA?.private_key || "";
 
   if (!projectId || !clientEmail || !privateKey) {
     throw new Error("Firebase Admin is not configured (missing service account env vars).");
@@ -58,7 +75,8 @@ export function adminDb(): Firestore {
 }
 
 export const adminConfigured = Boolean(
-  process.env.FIREBASE_PROJECT_ID &&
+  (process.env.FIREBASE_PROJECT_ID &&
     process.env.FIREBASE_CLIENT_EMAIL &&
-    (process.env.FIREBASE_PRIVATE_KEY || process.env.FIREBASE_PRIVATE_KEY_BASE64)
+    (process.env.FIREBASE_PRIVATE_KEY || process.env.FIREBASE_PRIVATE_KEY_BASE64)) ||
+    (SA?.project_id && SA.client_email && SA.private_key)
 );

@@ -31,3 +31,8 @@ next-env.d.ts
 # archives
 *.zip
 /.next-admin/
+
+# Firebase service-account keys (secrets — never commit)
+serviceAccountKey*.json
+*firebase-adminsdk*.json
+/secrets/

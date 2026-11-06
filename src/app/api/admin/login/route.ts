@@ -1,16 +1,9 @@
-import crypto from "crypto";
 import { setSessionCookie } from "@/lib/adminSession";
 import { verifyPass } from "@/lib/captcha";
+import { checkAdminLogin, clearLoginFailures, loginBlocked, recordLoginFailure } from "@/lib/adminAuth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-
-function safeEqual(a: string, b: string): boolean {
-  const ba = Buffer.from(a);
-  const bb = Buffer.from(b);
-  if (ba.length !== bb.length) return false;
-  return crypto.timingSafeEqual(ba, bb);
-}
 
 export async function POST(request: Request) {
   let payload: { username?: string; password?: string; captchaToken?: string };
@@ -19,29 +12,32 @@ export async function POST(request: Request) {
   } catch {
     return Response.json({ ok: false, error: "Invalid request." }, { status: 400 });
   }
-
   const { username = "", password = "", captchaToken } = payload;
+  const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || request.headers.get("x-real-ip") || "local";
 
-  // 1) Captcha (always required)
-  // Built-in slider captcha (src/lib/captcha.ts): the form sends a single-use pass token.
-  const captchaOk = verifyPass(captchaToken, "login");
-  if (!captchaOk) {
+  // 0) Too many wrong attempts from this address?
+  const wait = loginBlocked(ip);
+  if (wait) {
+    return Response.json({ ok: false, error: `Too many attempts. Try again in ${wait} min.` }, { status: 429 });
+  }
+
+  // 1) Captcha (always required) — built-in slider captcha, single-use pass token.
+  if (!verifyPass(captchaToken, "login")) {
     return Response.json({ ok: false, error: "Captcha verification failed." }, { status: 400 });
   }
 
-  // 2) Credentials
-  const expectedUser = process.env.ADMIN_USERNAME ?? "";
-  const expectedPass = process.env.ADMIN_PASSWORD ?? "";
-  const ok =
-    expectedUser !== "" &&
-    expectedPass !== "" &&
-    safeEqual(username.trim(), expectedUser) &&
-    safeEqual(password, expectedPass);
-
-  if (!ok) {
+  // 2) Credentials: Vercel env vars OR the credentials saved in Firebase.
+  const user = await checkAdminLogin(username, password);
+  if (!user) {
+    recordLoginFailure(ip);
     return Response.json({ ok: false, error: "Invalid username or password." }, { status: 401 });
   }
 
-  await setSessionCookie(expectedUser);
+  clearLoginFailures(ip);
+  try {
+    await setSessionCookie(user);
+  } catch {
+    return Response.json({ ok: false, error: "Login is not configured on the server (Firebase or ADMIN_SESSION_SECRET missing)." }, { status: 500 });
+  }
   return Response.json({ ok: true });
 }
