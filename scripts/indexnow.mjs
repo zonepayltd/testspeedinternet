@@ -10,8 +10,13 @@ let urls;
 if (args.length) {
   urls = args.map((p) => (p.startsWith("http") ? p : `${SITE}${p.startsWith("/") ? "" : "/"}${p}`));
 } else {
-  const xml = await (await fetch(`${SITE}/sitemap.xml`)).text();
-  urls = [...xml.matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => m[1]).filter((u) => u.startsWith(SITE));
+  // /sitemap.xml is an index: read every child sitemap it lists.
+  const locs = async (u) => [...(await (await fetch(u)).text()).matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => m[1]);
+  const index = await locs(`${SITE}/sitemap.xml`);
+  const children = index.filter((u) => u.endsWith(".xml"));
+  urls = [];
+  for (const child of children.length ? children : [`${SITE}/sitemap.xml`]) urls.push(...(await locs(child)));
+  urls = [...new Set(urls)].filter((u) => u.startsWith(SITE) && !u.endsWith(".xml"));
 }
 
 if (!urls.length) {

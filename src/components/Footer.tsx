@@ -214,9 +214,9 @@ export default function Footer() {
                   </li>
                 ))}
                 <li>
-                  <a href="/sitemap.xml" className="transition-colors hover:text-white">
+                  <Link href={lp(locale, "/sitemap")} className="transition-colors hover:text-white">
                     {t.links.sitemap}
-                  </a>
+                  </Link>
                 </li>
               </ul>
               <ThemeToggle className="[&_.menu-pop]:bottom-full [&_.menu-pop]:top-auto [&_.menu-pop]:mb-2" />

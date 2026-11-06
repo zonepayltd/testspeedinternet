@@ -13,6 +13,7 @@ const nextConfig = {
     "/[locale]/blog/[slug]": ["./src/content/blog/**/*"],
     "/[locale]/blog/[slug]/opengraph-image": ["./src/content/blog/**/*"],
     "/sitemap.xml": ["./src/content/blog/**/*"],
+    "/sitemaps/[file]": ["./src/content/blog/**/*"],
     "/feed.xml": ["./src/content/blog/**/*"],
   },
   async headers() {
