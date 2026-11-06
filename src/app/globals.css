@@ -328,32 +328,16 @@
   }
 }
 
-/* ---------------- Hero backdrop animation ---------------- */
-.hero-stream {
-  stroke-dasharray: 40 260;
-  animation: hero-flow 4.5s linear infinite;
+/* ---------------- Hero backdrop: slow, subtle drift ---------------- */
+.hero-drift {
+  animation: hero-drift 24s ease-in-out infinite alternate;
+  will-change: transform;
 }
-@keyframes hero-flow {
+@keyframes hero-drift {
   from {
-    stroke-dashoffset: 300;
+    transform: scale(1.02) translate3d(0, 0, 0);
   }
   to {
-    stroke-dashoffset: 0;
-  }
-}
-.hero-node {
-  animation: hero-pulse 3.2s ease-in-out infinite;
-  transform-box: fill-box;
-  transform-origin: center;
-}
-@keyframes hero-pulse {
-  0%,
-  100% {
-    opacity: 0.35;
-    transform: scale(1);
-  }
-  50% {
-    opacity: 1;
-    transform: scale(1.8);
+    transform: scale(1.07) translate3d(0, -1%, 0);
   }
 }

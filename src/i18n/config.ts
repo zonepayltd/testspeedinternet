@@ -3,12 +3,13 @@ export const LOCALES = ["en", "fr", "es", "ar", "ru"] as const;
 export type Locale = (typeof LOCALES)[number];
 export const DEFAULT_LOCALE: Locale = "en";
 
-export const LOCALE_META: Record<Locale, { name: string; english: string; dir: "ltr" | "rtl"; og: string; htmlLang: string }> = {
-  en: { name: "English", english: "English", dir: "ltr", og: "en_US", htmlLang: "en" },
-  fr: { name: "Français", english: "French", dir: "ltr", og: "fr_FR", htmlLang: "fr" },
-  es: { name: "Español", english: "Spanish", dir: "ltr", og: "es_ES", htmlLang: "es" },
-  ar: { name: "العربية", english: "Arabic", dir: "rtl", og: "ar_AR", htmlLang: "ar" },
-  ru: { name: "Русский", english: "Russian", dir: "ltr", og: "ru_RU", htmlLang: "ru" },
+// `flag` = ISO country code of the flag shown in the language menu.
+export const LOCALE_META: Record<Locale, { name: string; english: string; dir: "ltr" | "rtl"; og: string; htmlLang: string; flag: string }> = {
+  en: { name: "English", english: "English", dir: "ltr", og: "en_US", htmlLang: "en", flag: "gb" },
+  fr: { name: "Français", english: "French", dir: "ltr", og: "fr_FR", htmlLang: "fr", flag: "fr" },
+  es: { name: "Español", english: "Spanish", dir: "ltr", og: "es_ES", htmlLang: "es", flag: "es" },
+  ar: { name: "العربية", english: "Arabic", dir: "rtl", og: "ar_AR", htmlLang: "ar", flag: "sa" },
+  ru: { name: "Русский", english: "Russian", dir: "ltr", og: "ru_RU", htmlLang: "ru", flag: "ru" },
 };
 
 export function isLocale(v: unknown): v is Locale {

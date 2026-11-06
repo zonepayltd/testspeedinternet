@@ -2,10 +2,24 @@
 
 import { useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
-import { Check, ChevronDown, Globe } from "lucide-react";
+import { Check, ChevronDown } from "lucide-react";
 import { LOCALES, LOCALE_META, lp, splitLocale, pick, type Locale } from "@/i18n/config";
 import { useLocale } from "@/i18n/client";
 import { commonMessages } from "@/i18n/messages/common";
+
+function Flag({ l, className = "" }: { l: Locale; className?: string }) {
+  return (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src={`https://flagcdn.com/${LOCALE_META[l].flag}.svg`}
+      alt=""
+      width={20}
+      height={15}
+      loading="lazy"
+      className={`h-[15px] w-5 shrink-0 rounded-[3px] object-cover shadow-sm ring-1 ring-black/10 dark:ring-white/15 ${className}`}
+    />
+  );
+}
 
 export default function LanguageSwitcher({ className = "", full = false }: { className?: string; full?: boolean }) {
   const locale = useLocale();
@@ -47,7 +61,7 @@ export default function LanguageSwitcher({ className = "", full = false }: { cla
         aria-expanded={open}
         className={full ? "btn-secondary w-full justify-between" : "icon-btn w-auto gap-1.5 px-2.5"}
       >
-        <Globe className="h-[18px] w-[18px]" aria-hidden="true" />
+        <Flag l={locale} />
         <span className={`text-sm font-semibold ${full ? "flex-1 text-start" : "uppercase"}`}>
           {full ? LOCALE_META[locale].name : locale}
         </span>
@@ -65,8 +79,9 @@ export default function LanguageSwitcher({ className = "", full = false }: { cla
               onClick={() => go(l)}
               className="menu-item"
             >
-              <span className="w-7 text-xs font-bold uppercase text-slate-400 dark:text-slate-500">{l}</span>
+              <Flag l={l} />
               <span className="flex-1 text-start">{LOCALE_META[l].name}</span>
+              <span className="text-[11px] font-semibold uppercase text-slate-400 dark:text-slate-500">{l}</span>
               {l === locale && <Check className="h-4 w-4 text-brand-600 dark:text-brand-400" aria-hidden="true" />}
             </button>
           ))}
