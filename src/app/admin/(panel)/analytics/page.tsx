@@ -1,6 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useWipeAnalytics } from "@/components/admin/settings/WipeAnalytics";
+import { Eraser } from "lucide-react";
 import { BarChart3, Clock, Download, Eye, Globe2, Languages, Layers, LogIn, MonitorSmartphone, MousePointerClick, RefreshCw, Search, Share2, UserPlus, Users } from "lucide-react";
 import { Button, Card, Flag, IconButton, PageHeader, Segmented, Skeleton, StatCard, Toggle, api, fmtNum } from "@/components/admin/ui";
 import {
@@ -78,6 +80,7 @@ export default function AnalyticsPage() {
     }
   };
 
+  const wipe = useWipeAnalytics(load);
   const d = data;
   const t = d?.totals;
 
@@ -92,10 +95,14 @@ export default function AnalyticsPage() {
             <RangeControl value={range} onChange={changeRange} />
             <IconButton icon={RefreshCw} label="Refresh" variant="secondary" onClick={load} className={loading ? "[&_svg]:animate-spin" : ""} />
             <Button icon={Download} onClick={() => downloadUrl(`/api/admin/analytics?${rangeQuery(range)}&format=csv`)}>Export CSV</Button>
+            <Button variant="danger-ghost" icon={wipe.busy ? undefined : Eraser} loading={!!wipe.busy} onClick={wipe.ask}>
+              {wipe.busy ? `Deleting ${wipe.busy.toLowerCase()}…` : "Delete all…"}
+            </Button>
           </>
         }
       />
 
+      {wipe.dialog}
       {error && <div className="mb-6"><ErrorBox message={error} onRetry={load} /></div>}
       {d?.capped && <p className="mb-4 rounded-xl bg-amber-50 px-4 py-2 text-xs text-amber-700 dark:bg-amber-400/10 dark:text-amber-300">Showing the most recent 25,000 page views in this range — pick a shorter range for exact totals.</p>}
 

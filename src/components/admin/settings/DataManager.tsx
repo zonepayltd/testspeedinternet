@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import WipeAnalyticsCard from "./WipeAnalytics";
 import { AlertTriangle, BarChart3, Database, Download, Eye, Gauge, Mail, Megaphone, RefreshCw, RotateCcw, Trash2, Users, Wifi, type LucideIcon } from "lucide-react";
 import { Button, Select, Skeleton, api, fmtNum, inputCls, useAdminUI, type Tone } from "@/components/admin/ui";
 
@@ -66,6 +67,8 @@ export default function DataManager() {
           Refresh counts
         </Button>
       </div>
+
+      <WipeAnalyticsCard onDone={load} />
 
       {error && (
         <div className="flex items-center justify-between gap-3 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700 dark:border-rose-400/20 dark:bg-rose-400/10 dark:text-rose-300">
@@ -296,7 +299,7 @@ function AdStatsCard({ data, loading, onChanged }: { data: Data | null; loading:
 
 /* --------------------------- type-to-confirm dialog -------------------------- */
 
-function TypeToConfirm({ title, message, onClose, onConfirm }: { title: string; message: string; onClose: () => void; onConfirm: () => void }) {
+export function TypeToConfirm({ title, message, onClose, onConfirm }: { title: string; message: string; onClose: () => void; onConfirm: () => void }) {
   const [text, setText] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
   const ok = text === "DELETE";
