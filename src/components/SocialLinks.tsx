@@ -53,9 +53,9 @@ export default function SocialLinks() {
             target="_blank"
             rel="noopener noreferrer"
             aria-label={platformLabel(s.platform)}
-            className="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 transition-colors hover:border-brand-300 hover:text-brand-600"
+            className="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 transition-colors hover:border-brand-300 hover:text-brand-600 dark:border-white/10 dark:bg-white/5 dark:text-slate-400 dark:hover:border-brand-400/40 dark:hover:text-brand-300"
           >
-            <Icon className="h-4 w-4" />
+            <Icon className="h-4 w-4" aria-hidden="true" />
           </a>
         );
       })}

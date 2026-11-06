@@ -6,9 +6,10 @@ const nextConfig = {
   eslint: { ignoreDuringBuilds: true },
   // Ship the Markdown blog articles with the server bundle (they're read at runtime).
   outputFileTracingIncludes: {
-    "/blog": ["./src/content/blog/**/*"],
-    "/blog/[slug]": ["./src/content/blog/**/*"],
-    "/blog/[slug]/opengraph-image": ["./src/content/blog/**/*"],
+    "/[locale]": ["./src/content/blog/**/*"],
+    "/[locale]/blog": ["./src/content/blog/**/*"],
+    "/[locale]/blog/[slug]": ["./src/content/blog/**/*"],
+    "/[locale]/blog/[slug]/opengraph-image": ["./src/content/blog/**/*"],
     "/sitemap.xml": ["./src/content/blog/**/*"],
     "/feed.xml": ["./src/content/blog/**/*"],
   },

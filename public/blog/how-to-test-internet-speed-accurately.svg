@@ -11,7 +11,7 @@
   <circle cx="980" cy="560" r="160" fill="#fff" fill-opacity=".05"/>
   <rect x="72" y="70" width="230" height="44" rx="22" fill="#fff" fill-opacity=".16"/>
   <text x="96" y="99" font-size="20" font-weight="700" letter-spacing="2" fill="#fff">SPEED TESTING</text>
-  <text x="72" y="235.65" font-size="46" font-weight="800" fill="#fff">How to Test Your</text><text x="72" y="288.55" font-size="46" font-weight="800" fill="#fff">Internet Speed</text><text x="72" y="341.45" font-size="46" font-weight="800" fill="#fff">Accurately</text><text x="72" y="394.35" font-size="46" font-weight="800" fill="#fff">(Step-by-Step)</text>
+  <text x="72" y="232.2" font-size="46" font-weight="800" fill="#fff">How to Test Your</text><text x="72" y="287.4" font-size="46" font-weight="800" fill="#fff">Internet Speed</text><text x="72" y="342.59999999999997" font-size="46" font-weight="800" fill="#fff">Accurately</text><text x="72" y="397.79999999999995" font-size="46" font-weight="800" fill="#fff">(Step-by-Step)</text>
   <text x="72" y="560" font-size="24" font-weight="600" fill="#fff" fill-opacity=".75">testspeedinternet.com</text>
   <g transform="translate(790 135)">
     <circle cx="180" cy="200" r="150" fill="none" stroke="#fff" stroke-opacity=".15" stroke-width="28"/>

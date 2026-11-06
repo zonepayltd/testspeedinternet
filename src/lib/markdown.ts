@@ -8,7 +8,8 @@ function headingId(text: string) {
     .toLowerCase()
     .replace(/<[^>]+>/g, "")
     .replace(/&[a-z#0-9]+;/g, "")
-    .replace(/[^a-z0-9\s-]/g, "")
+    // keep letters/numbers from any script (Arabic, Cyrillic, accented Latin)
+    .replace(/[^\p{L}\p{N}\s-]/gu, "")
     .trim()
     .replace(/\s+/g, "-")
     .slice(0, 70);

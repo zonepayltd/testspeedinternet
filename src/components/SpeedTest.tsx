@@ -1,17 +1,61 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
-import { Download, Upload, Zap, Activity, RotateCcw, Server, Wifi } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  Activity,
+  Check,
+  ChevronDown,
+  CircleCheck,
+  CircleMinus,
+  Copy,
+  Download,
+  History as HistoryIcon,
+  MapPin,
+  RotateCcw,
+  Server,
+  Share2,
+  Square,
+  TriangleAlert,
+  Upload,
+  Wifi,
+  Zap,
+} from "lucide-react";
+import { useLocale } from "@/i18n/client";
+import { lp, pick, type Locale } from "@/i18n/config";
+import { speedTestMessages, type SpeedTestMessages } from "@/i18n/messages/speedtest";
+import Gauge, { type Tone } from "./speedtest/Gauge";
+import Sparkline from "./speedtest/Sparkline";
+import {
+  AbortedError,
+  CF_DOWN,
+  SpeedTestError,
+  measurePing,
+  measureThroughput,
+  type ErrorCode,
+} from "./speedtest/engine";
+import {
+  PING_TIERS,
+  RATING_TONE,
+  SCALE_TIERS,
+  activityChecks,
+  coloCity,
+  countryName,
+  flagUrl,
+  formatMs,
+  formatSpeed,
+  formatTick,
+  ispLogoUrl,
+  niceMax,
+  numberLocale,
+  rateConnection,
+  type Results,
+} from "./speedtest/format";
+import { addToHistory, clearHistory, loadHistory, type HistoryEntry } from "./speedtest/history";
 
-type Phase = "idle" | "ping" | "download" | "upload" | "done";
 type Mode = "full" | "download" | "upload" | "ping";
-
-type Metrics = {
-  download: number | null;
-  upload: number | null;
-  ping: number | null;
-  jitter: number | null;
-};
+type Phase = "idle" | "ping" | "download" | "upload" | "done" | "error" | "cancelled";
+type Step = "ping" | "download" | "upload";
+type Series = { download: number[]; upload: number[]; ping: number[] };
 
 type ConnInfo = {
   ok: boolean;
@@ -19,715 +63,884 @@ type ConnInfo = {
   isp?: string;
   country?: string;
   countryCode?: string;
-  region?: string;
   city?: string;
 };
 
-const EMPTY: Metrics = { download: null, upload: null, ping: null, jitter: null };
-
-const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
-
-// Cloudflare's public speed-test backend — measures the REAL internet path,
-// so values are accurate even when developing on localhost.
-const CF_DOWN = "https://speed.cloudflare.com/__down";
-const CF_UP = "https://speed.cloudflare.com/__up";
-
-// Non-linear gauge scale (Mbps) — mirrors how real speed-test dials are spaced.
-// Dynamic gauge scale — the max adapts to the connection so the dial is
-// meaningful whether you have 1.5 Mbps or 900 Mbps. Each tier ÷5 = clean ticks.
-const SCALE_TIERS = [2.5, 5, 10, 25, 50, 100, 250, 500, 1000, 2500, 5000];
-
-function niceMax(v: number): number {
-  for (const t of SCALE_TIERS) if (v <= t * 0.95) return t;
-  return SCALE_TIERS[SCALE_TIERS.length - 1];
-}
-
-function fractionFor(v: number, scaleMax: number): number {
-  if (v <= 0 || scaleMax <= 0) return 0;
-  return Math.min(v / scaleMax, 1);
-}
-
-// 6 evenly-spaced ticks (0 … scaleMax).
-function ticksFor(scaleMax: number): number[] {
-  const step = scaleMax / 5;
-  return [0, 1, 2, 3, 4, 5].map((i) => step * i);
-}
-
-// Tick label: integers as-is, small scales with one decimal.
-function tickLabel(v: number): string {
-  return Number.isInteger(v) ? String(v) : v.toFixed(1);
-}
-
-const COLO: Record<string, string> = {
-  CMN: "Casablanca",
-  RBA: "Rabat",
-  MRS: "Marseille",
-  CDG: "Paris",
-  LHR: "London",
-  MAD: "Madrid",
-  FRA: "Frankfurt",
-  AMS: "Amsterdam",
-  IAD: "Washington",
-  EWR: "Newark",
-  LAX: "Los Angeles",
-  SIN: "Singapore",
-  DXB: "Dubai",
-  IST: "Istanbul",
+const EMPTY: Results = { download: null, upload: null, ping: null, jitter: null };
+const NO_SERIES: Series = { download: [], upload: [], ping: [] };
+const SITE = "https://www.testspeedinternet.com";
+const DURATION_S: Record<Mode, number> = { full: 20, download: 10, upload: 8, ping: 3 };
+const STEPS: Record<Mode, Step[]> = {
+  full: ["ping", "download", "upload"],
+  download: ["download"],
+  upload: ["upload"],
+  ping: ["ping"],
 };
+const COLORS = { download: "#3b82f6", upload: "#8b5cf6", ping: "#10b981", jitter: "#f59e0b" };
 
-// Real flag image (emoji flags don't render on Windows browsers).
-function flagUrl(cc?: string, retina = false): string | null {
-  if (!cc || cc.length !== 2) return null;
-  const c = cc.toLowerCase();
-  return retina
-    ? `https://flagcdn.com/64x48/${c}.png`
-    : `https://flagcdn.com/32x24/${c}.png`;
+// ---------------------------------------------------------------------------
+// Small hooks
+// ---------------------------------------------------------------------------
+
+function useReducedMotion(): boolean {
+  const [reduce, setReduce] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const update = () => setReduce(mq.matches);
+    update();
+    mq.addEventListener?.("change", update);
+    return () => mq.removeEventListener?.("change", update);
+  }, []);
+  return reduce;
 }
 
-// Logo.dev publishable token (set NEXT_PUBLIC_LOGODEV_TOKEN in .env.local).
-const LOGODEV_TOKEN = process.env.NEXT_PUBLIC_LOGODEV_TOKEN ?? "";
-
-// Map well-known ISP names to a brand domain so we can fetch their logo.
-const ISP_DOMAINS: [string, string][] = [
-  ["maroc telecom", "iam.ma"],
-  ["maroctelecom", "iam.ma"],
-  ["menara", "iam.ma"],
-  ["orange", "orange.ma"],
-  ["inwi", "inwi.ma"],
-  ["wana", "inwi.ma"],
-];
-
-function ispDomain(isp?: string): string | null {
-  if (!isp) return null;
-  const s = isp.toLowerCase();
-  for (const [key, domain] of ISP_DOMAINS) {
-    if (s.includes(key)) return domain;
-  }
-  return null;
+/** Eases a number toward `target` with requestAnimationFrame (instant when reduced motion). */
+function useEased(target: number, reduce: boolean): number {
+  const [value, setValue] = useState(target);
+  const ref = useRef(target);
+  useEffect(() => {
+    if (reduce) {
+      ref.current = target;
+      setValue(target);
+      return;
+    }
+    let raf = 0;
+    const step = () => {
+      const diff = target - ref.current;
+      if (Math.abs(diff) < 0.02) {
+        ref.current = target;
+        setValue(target);
+        return;
+      }
+      ref.current += diff * 0.12;
+      setValue(ref.current);
+      raf = requestAnimationFrame(step);
+    };
+    raf = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(raf);
+  }, [target, reduce]);
+  return value;
 }
 
-function ispLogoUrl(isp?: string): string | null {
-  const domain = ispDomain(isp);
-  if (!domain) return null;
-  // Real brand logo via Logo.dev when a token is configured…
-  if (LOGODEV_TOKEN) {
-    return `https://img.logo.dev/${domain}?token=${LOGODEV_TOKEN}&size=128&format=png&retina=true`;
-  }
-  // …otherwise fall back to the site favicon.
-  return `https://www.google.com/s2/favicons?sz=128&domain=${domain}`;
-}
-
-function fmt(v: number): string {
-  return v >= 100 ? v.toFixed(0) : v.toFixed(1);
-}
-
-// Gauge geometry: a 270° arc with the gap at the bottom.
-const CENTER = 140;
-const RADIUS = 116;
-const START_ANGLE = -135;
-const SWEEP = 270;
-
-function point(angle: number, r = RADIUS) {
-  const a = (angle * Math.PI) / 180;
-  return { x: CENTER + r * Math.sin(a), y: CENTER - r * Math.cos(a) };
-}
-
-function arcPath(fromAngle: number, toAngle: number, r = RADIUS) {
-  const s = point(fromAngle, r);
-  const e = point(toAngle, r);
-  const large = toAngle - fromAngle > 180 ? 1 : 0;
-  return `M ${s.x.toFixed(2)} ${s.y.toFixed(2)} A ${r} ${r} 0 ${large} 1 ${e.x.toFixed(
-    2
-  )} ${e.y.toFixed(2)}`;
-}
-
-const TRACK_PATH = arcPath(START_ANGLE, START_ANGLE + SWEEP);
-const PING_ARC = arcPath(START_ANGLE, START_ANGLE + 55); // short arc for the ping spinner
-
-const PHASE_LABEL: Record<Phase, string> = {
-  idle: "Ready",
-  ping: "Ping",
-  download: "Download",
-  upload: "Upload",
-  done: "Download",
-};
+// ---------------------------------------------------------------------------
+// Component
+// ---------------------------------------------------------------------------
 
 export default function SpeedTest({ mode = "full" }: { mode?: Mode }) {
+  const locale = useLocale();
+  const t = pick(speedTestMessages, locale);
+  const reduce = useReducedMotion();
+
   const [phase, setPhase] = useState<Phase>("idle");
-  const [metrics, setMetrics] = useState<Metrics>(EMPTY);
-  const [error, setError] = useState<string | null>(null);
+  const [results, setResults] = useState<Results>(EMPTY);
+  const [error, setError] = useState<ErrorCode | null>(null);
   const [info, setInfo] = useState<ConnInfo | null>(null);
-  const [serverColo, setServerColo] = useState<string>("");
+  const [colo, setColo] = useState("");
+  const [live, setLive] = useState(0); // gauge target (Mbps, or ms in ping mode)
+  const [pingLive, setPingLive] = useState<number | null>(null);
+  const [series, setSeries] = useState<Series>(NO_SERIES);
+  const [history, setHistory] = useState<HistoryEntry[]>([]);
+  const [canShare, setCanShare] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const [announce, setAnnounce] = useState("");
 
-  // Smoothly eased gauge value, driven by requestAnimationFrame.
-  const [animated, setAnimated] = useState(0);
-  const targetRef = useRef(0);
-  const animatedRef = useRef(0);
+  const msScale = mode === "ping";
+  const tiers = msScale ? PING_TIERS : SCALE_TIERS;
+  const [scaleMax, setScaleMax] = useState(msScale ? PING_TIERS[0] : 100);
+  const growingRef = useRef(false);
+  const runRef = useRef<AbortController | null>(null);
 
-  // Dynamic gauge scale (max) that adapts to the connection speed.
-  const [scaleMax, setScaleMax] = useState(100);
-  const scaleMaxRef = useRef(100);
-  const growScaleRef = useRef(false);
+  const animated = useEased(live, reduce);
 
-  const aliveRef = useRef(true);
-
+  // Grow the dial while testing so the arc stays in a useful range.
   useEffect(() => {
-    aliveRef.current = true;
-    let raf = 0;
-    const tick = () => {
-      const target = targetRef.current;
-      const current = animatedRef.current;
-      const diff = target - current;
-      if (Math.abs(diff) > 0.05) {
-        const next = current + diff * 0.12; // easing factor
-        animatedRef.current = next;
-        setAnimated(next);
-      } else if (current !== target) {
-        animatedRef.current = target;
-        setAnimated(target);
-      }
-      // Grow the scale while testing so the needle stays in a useful range.
-      if (growScaleRef.current) {
-        const nm = niceMax(animatedRef.current);
-        if (nm > scaleMaxRef.current) {
-          scaleMaxRef.current = nm;
-          setScaleMax(nm);
-        }
-      }
-      raf = requestAnimationFrame(tick);
-    };
-    raf = requestAnimationFrame(tick);
-    return () => {
-      aliveRef.current = false;
-      cancelAnimationFrame(raf);
-    };
-  }, []);
+    if (!growingRef.current) return;
+    const nm = niceMax(animated, tiers);
+    if (nm > scaleMax) setScaleMax(nm);
+  }, [animated, scaleMax, tiers]);
 
-  const setTarget = useCallback((v: number) => {
-    targetRef.current = v;
-  }, []);
-
-  // Fetch the visitor's connection details once on mount.
+  // Connection details, history, share support, and the nearest server (colo).
   useEffect(() => {
-    let active = true;
-    fetch("/api/ip", { cache: "no-store" })
+    const ctrl = new AbortController();
+    fetch("/api/ip", { cache: "no-store", signal: ctrl.signal })
       .then((r) => r.json())
-      .then((data: ConnInfo) => {
-        if (active) setInfo(data);
-      })
+      .then((data: ConnInfo) => setInfo(data))
       .catch(() => {
-        if (active) setInfo({ ok: false });
+        if (!ctrl.signal.aborted) setInfo({ ok: false });
       });
+    fetch(`${CF_DOWN}?bytes=0&probe=1&t=${Date.now()}`, { cache: "no-store", signal: ctrl.signal })
+      .then((r) => {
+        const c = r.headers.get("cf-meta-colo");
+        if (c) setColo((prev) => prev || c);
+      })
+      .catch(() => {});
+    setHistory(loadHistory());
+    setCanShare(typeof navigator !== "undefined" && typeof navigator.share === "function");
     return () => {
-      active = false;
+      ctrl.abort();
+      runRef.current?.abort();
     };
   }, []);
 
-  // --- Measurement primitives -------------------------------------------------
-
-  const measurePing = useCallback(async () => {
-    try {
-      await fetch(`${CF_DOWN}?bytes=0&warmup=1&t=${performance.now()}`, {
-        cache: "no-store",
-      });
-    } catch {
-      /* ignore */
-    }
-
-    const samples: number[] = [];
-    for (let i = 0; i < 8; i++) {
-      const t0 = performance.now();
-      try {
-        const res = await fetch(`${CF_DOWN}?bytes=0&n=${i}&t=${t0}`, {
-          cache: "no-store",
-        });
-        const colo = res.headers.get("cf-meta-colo");
-        if (colo && aliveRef.current) setServerColo(colo);
-      } catch {
-        continue;
-      }
-      samples.push(performance.now() - t0);
-    }
-    if (samples.length === 0) return { ping: 0, jitter: 0 };
-    const min = Math.min(...samples);
-    const avg = samples.reduce((a, b) => a + b, 0) / samples.length;
-    const jitter =
-      samples.reduce((a, b) => a + Math.abs(b - avg), 0) / samples.length;
-    return { ping: min, jitter };
-  }, []);
-
-  const measureStream = useCallback(
-    async (kind: "download" | "upload") => {
-      const durationMs = kind === "download" ? 8000 : 6000;
-      const streams = kind === "download" ? 5 : 3;
-      let bytes = 0;
-      let stop = false;
-
-      const start = performance.now();
-      let warmed = false;
-      let warmupBytes = 0;
-      let warmupTime = start;
-      let lastBytes = 0;
-      let lastTime = start;
-
-      let payload: Blob | null = null;
-      if (kind === "upload") {
-        const size = 2_000_000;
-        const buf = new Uint8Array(size);
-        for (let off = 0; off < size; off += 65536) {
-          crypto.getRandomValues(buf.subarray(off, Math.min(off + 65536, size)));
-        }
-        // No explicit type → no Content-Type header → a CORS "simple request"
-        // (avoids the OPTIONS preflight that was making uploads fail / read 0).
-        payload = new Blob([buf]);
-      }
-
-      // No AbortController — we stop cleanly via the `stop` flag and
-      // reader.cancel(), which avoids the noisy "AbortError" rejections.
-      const loop = async (idx: number) => {
-        while (!stop) {
-          try {
-            if (kind === "download") {
-              const res = await fetch(
-                `${CF_DOWN}?bytes=25000000&r=${start}-${idx}-${performance.now()}`,
-                { cache: "no-store" }
-              );
-              const colo = res.headers.get("cf-meta-colo");
-              if (colo && aliveRef.current) setServerColo(colo);
-              if (!res.body) {
-                const b = await res.arrayBuffer();
-                bytes += b.byteLength;
-                continue;
-              }
-              const reader = res.body.getReader();
-              while (!stop) {
-                const { done, value } = await reader.read();
-                if (done) break;
-                bytes += value.byteLength;
-              }
-              try {
-                await reader.cancel();
-              } catch {
-                /* already closed */
-              }
-            } else {
-              await fetch(CF_UP, {
-                method: "POST",
-                body: payload as Blob,
-                cache: "no-store",
-              });
-              bytes += (payload as Blob).size;
-            }
-          } catch {
-            break;
-          }
-        }
+  // Dev-only preview of the result/running states: add ?stdemo=done|download|upload|ping|error
+  useEffect(() => {
+    if (process.env.NODE_ENV === "production") return;
+    const demo = new URLSearchParams(window.location.search).get("stdemo");
+    if (!demo) return;
+    const dl = [0, 30, 120, 260, 340, 365, 372, 380, 376, 384, 379, 388, 383, 386, 390, 385, 389, 392];
+    const ul = [0, 15, 48, 71, 82, 88, 90, 91, 92, 92.5, 93, 92.8];
+    const pg = [14, 12, 13, 11, 15, 12, 12, 13];
+    growingRef.current = false;
+    if (demo === "download" || demo === "upload") {
+      setPhase(demo);
+      setResults({ ...EMPTY, ping: 11.4, jitter: 1.3, download: demo === "upload" ? 384.6 : null });
+      setSeries({ ping: pg, download: demo === "upload" ? dl : dl.slice(0, 11), upload: demo === "upload" ? ul.slice(0, 7) : [] });
+      setScaleMax(500);
+      setLive(demo === "upload" ? 88 : 372);
+    } else if (demo === "ping") {
+      setPhase("ping");
+      setPingLive(13);
+      setSeries({ ...NO_SERIES, ping: pg.slice(0, 5) });
+    } else if (demo === "error") {
+      setPhase("error");
+      setError("upload");
+      setResults({ ...EMPTY, ping: 11.4, jitter: 1.3, download: 384.6 });
+    } else {
+      const r = { download: 384.6, upload: 92.8, ping: 11.4, jitter: 1.3 };
+      const r2: Results = {
+        download: mode === "full" || mode === "download" ? r.download : null,
+        upload: mode === "full" || mode === "upload" ? r.upload : null,
+        ping: mode === "full" || mode === "ping" ? r.ping : null,
+        jitter: mode === "full" || mode === "ping" ? r.jitter : null,
       };
-
-      const loops = Array.from({ length: streams }, (_, i) => loop(i));
-
-      const interval = setInterval(() => {
-        const now = performance.now();
-        const elapsed = now - start;
-        if (!warmed && elapsed >= 1500) {
-          warmed = true;
-          warmupBytes = bytes;
-          warmupTime = now;
-        }
-        const dt = (now - lastTime) / 1000;
-        if (dt > 0) {
-          const inst = ((bytes - lastBytes) * 8) / dt / 1e6;
-          setTarget(inst);
-        }
-        lastBytes = bytes;
-        lastTime = now;
-      }, 200);
-
-      await sleep(durationMs);
-      stop = true;
-      clearInterval(interval);
-      await Promise.allSettled(loops);
-
-      const end = performance.now();
-      let useBytes = warmed ? bytes - warmupBytes : bytes;
-      let useTime = (warmed ? end - warmupTime : end - start) / 1000;
-      // Fallback: if nothing completed inside the post-warmup window, use the
-      // whole run so a slow upload still reports a real figure instead of 0.
-      if (useBytes <= 0) {
-        useBytes = bytes;
-        useTime = (end - start) / 1000;
-      }
-      const mbps = useTime > 0 ? (useBytes * 8) / useTime / 1e6 : 0;
-      return Number.isFinite(mbps) ? mbps : 0;
-    },
-    [setTarget]
-  );
+      setResults(r2);
+      setSeries({ download: dl, upload: ul, ping: pg });
+      const primary = r2.download ?? r2.upload ?? r2.ping ?? 0;
+      setScaleMax(niceMax(Math.max(primary, 1), mode === "ping" ? PING_TIERS : SCALE_TIERS));
+      setLive(primary);
+      setPhase("done");
+    }
+  }, [mode]);
 
   // --- Orchestration ----------------------------------------------------------
 
-  const runTest = useCallback(async () => {
+  const run = useCallback(async () => {
+    runRef.current?.abort();
+    const ctrl = new AbortController();
+    runRef.current = ctrl;
+    const { signal } = ctrl;
+
     setError(null);
-    setMetrics(EMPTY);
-    setTarget(0);
-    // Start the scale at the smallest tier and let it grow with the connection
-    // (so a slow 1.5 Mbps line still fills a meaningful part of the dial).
-    scaleMaxRef.current = SCALE_TIERS[0];
-    setScaleMax(SCALE_TIERS[0]);
-    growScaleRef.current = true;
+    setResults(EMPTY);
+    setSeries(NO_SERIES);
+    setPingLive(null);
+    setCopied(false);
+    setLive(0);
+    setScaleMax(tiers[0]);
+    growingRef.current = true;
+    setAnnounce(t.live.started);
 
     const wantPing = mode === "full" || mode === "ping";
     const wantDownload = mode === "full" || mode === "download";
     const wantUpload = mode === "full" || mode === "upload";
+    const r: Results = { ...EMPTY };
+    const onColo = (c: string) => setColo(c);
 
     try {
       if (wantPing) {
         setPhase("ping");
-        const { ping, jitter } = await measurePing();
-        if (!aliveRef.current) return;
-        setMetrics((m) => ({ ...m, ping, jitter }));
+        const res = await measurePing({
+          signal,
+          onColo,
+          onSample: (ms, samples) => {
+            setPingLive(ms);
+            setSeries((s) => ({ ...s, ping: samples }));
+            if (msScale) setLive(ms);
+          },
+        });
+        r.ping = res.ping;
+        r.jitter = res.jitter;
+        setResults({ ...r });
       }
 
-      let download = 0;
-      let upload = 0;
       if (wantDownload) {
         setPhase("download");
-        download = await measureStream("download");
-        if (!aliveRef.current) return;
-        setMetrics((m) => ({ ...m, download }));
-        setTarget(download);
+        setLive(0);
+        r.download = await measureThroughput("download", {
+          signal,
+          onColo,
+          onSample: (m) => {
+            setLive(m);
+            setSeries((s) => ({ ...s, download: [...s.download, m] }));
+          },
+        });
+        setResults({ ...r });
       }
 
       if (wantUpload) {
         setPhase("upload");
-        upload = await measureStream("upload");
-        if (!aliveRef.current) return;
-        setMetrics((m) => ({ ...m, upload }));
-        if (mode === "upload") setTarget(upload);
+        setLive(0);
+        r.upload = await measureThroughput("upload", {
+          signal,
+          onColo,
+          onSample: (m) => {
+            setLive(m);
+            setSeries((s) => ({ ...s, upload: [...s.upload, m] }));
+          },
+        });
+        setResults({ ...r });
       }
 
-      // Lock the scale to the result range, then reset the needle to 0.
-      growScaleRef.current = false;
-      const peak = niceMax(Math.max(download, upload, 1));
-      scaleMaxRef.current = peak;
-      setScaleMax(peak);
-      setTarget(0);
+      if (signal.aborted) return;
+      // Lock the dial to the result range and rest the arc on the main result.
+      growingRef.current = false;
+      const primary = r.download ?? r.upload ?? r.ping ?? 0;
+      setScaleMax(
+        msScale ? niceMax(Math.max(primary, 1), PING_TIERS) : niceMax(Math.max(r.download ?? 0, r.upload ?? 0, 1))
+      );
+      setLive(primary);
       setPhase("done");
-    } catch {
-      if (!aliveRef.current) return;
-      setError("Something went wrong during the test. Please try again.");
-      setPhase("idle");
+      setHistory(addToHistory({ t: Date.now(), mode, ...r }));
+      setAnnounce(`${t.live.finished} ${summaryLines(r, t, locale).join(". ")}`);
+    } catch (e) {
+      if (runRef.current !== ctrl) return; // a newer run (or unmount) took over
+      growingRef.current = false;
+      setLive(0);
+      if (e instanceof AbortedError || signal.aborted) {
+        setPhase("cancelled");
+        setAnnounce(t.live.stopped);
+      } else {
+        const code: ErrorCode = e instanceof SpeedTestError ? e.code : "generic";
+        setError(code);
+        setPhase("error");
+        setAnnounce(t.errors[code]);
+      }
     }
-  }, [mode, measurePing, measureStream, setTarget]);
+  }, [mode, msScale, tiers, t, locale]);
 
-  // --- Derived render values --------------------------------------------------
+  const stop = useCallback(() => runRef.current?.abort(), []);
+
+  // --- Actions ----------------------------------------------------------------
+
+  const shareText = useMemo(() => [t.shareTitle, ...summaryLines(results, t, locale)].join("\n"), [results, t, locale]);
+  const shareUrl = `${SITE}${lp(locale, "/")}`;
+
+  const copy = useCallback(async () => {
+    const text = `${shareText}\n${t.shareFooter}: ${shareUrl}`;
+    let ok = false;
+    try {
+      await navigator.clipboard.writeText(text);
+      ok = true;
+    } catch {
+      try {
+        const ta = document.createElement("textarea");
+        ta.value = text;
+        ta.setAttribute("readonly", "");
+        ta.style.position = "fixed";
+        ta.style.opacity = "0";
+        document.body.appendChild(ta);
+        ta.select();
+        ok = document.execCommand("copy");
+        ta.remove();
+      } catch {
+        ok = false;
+      }
+    }
+    if (ok) {
+      setCopied(true);
+      setAnnounce(t.copied);
+      window.setTimeout(() => setCopied(false), 2000);
+    }
+  }, [shareText, shareUrl, t]);
+
+  const share = useCallback(async () => {
+    try {
+      await navigator.share({ title: t.shareTitle, text: shareText, url: shareUrl });
+    } catch {
+      /* dismissed */
+    }
+  }, [shareText, shareUrl, t]);
+
+  // --- Derived ------------------------------------------------------------------
 
   const testing = phase === "ping" || phase === "download" || phase === "upload";
-  const fraction = fractionFor(animated, scaleMax);
-  const progressPath = arcPath(START_ANGLE, START_ANGLE + SWEEP * fraction);
-  const markerAngle = START_ANGLE + SWEEP * fraction;
-  const marker = point(markerAngle, RADIUS);
-  const gaugeTicks = ticksFor(scaleMax);
+  const steps = STEPS[mode];
+  const tone: Tone =
+    phase === "upload" || (phase === "done" && mode === "upload")
+      ? "upload"
+      : phase === "ping" || mode === "ping"
+        ? "ping"
+        : "download";
+  const unitMbps = t.units.mbps;
+  const ticks = [0, 1, 2, 3, 4, 5].map((i) => formatTick((scaleMax / 5) * i, locale));
+  const fraction = scaleMax > 0 ? animated / scaleMax : 0;
 
-  const downloadValue =
-    metrics.download != null
-      ? fmt(metrics.download)
-      : phase === "download"
-        ? fmt(animated)
-        : "-";
-  const uploadValue =
-    metrics.upload != null
-      ? fmt(metrics.upload)
-      : phase === "upload"
-        ? fmt(animated)
-        : "-";
+  const fmtSpeed = (v: number) => formatSpeed(v, locale);
+  const fmtMs = (v: number) => formatMs(v, locale);
 
-  const locationLabel = info?.ok
-    ? [info.city, info.country].filter(Boolean).join(", ")
-    : "";
-  const serverLabel = serverColo ? COLO[serverColo] ?? serverColo : "Auto-selected";
-  const flag = flagUrl(info?.countryCode);
-  const flag2x = flagUrl(info?.countryCode, true);
-  const ispLogo = ispLogoUrl(info?.isp);
-
-  const PhaseIcon =
-    phase === "upload" ? Upload : phase === "ping" ? Zap : Download;
-
-  // Which result tiles to show depends on the test mode.
-  const statDefs: {
-    key: string;
-    icon: React.ReactNode;
+  const cards: {
+    key: keyof Series | "jitter";
     label: string;
+    icon: React.ComponentType<{ className?: string }>;
     value: string;
     unit: string;
     active: boolean;
+    color: string;
+    data?: number[];
   }[] = [];
   if (mode === "full" || mode === "download")
-    statDefs.push({ key: "dl", icon: <Download className="h-4 w-4" />, label: "Download", value: downloadValue, unit: "Mbps", active: phase === "download" });
+    cards.push({
+      key: "download",
+      label: t.metrics.download,
+      icon: Download,
+      value: results.download != null ? fmtSpeed(results.download) : phase === "download" ? fmtSpeed(animated) : "–",
+      unit: unitMbps,
+      active: phase === "download",
+      color: COLORS.download,
+      data: series.download,
+    });
   if (mode === "full" || mode === "upload")
-    statDefs.push({ key: "ul", icon: <Upload className="h-4 w-4" />, label: "Upload", value: uploadValue, unit: "Mbps", active: phase === "upload" });
-  if (mode === "full" || mode === "ping")
-    statDefs.push({ key: "ping", icon: <Zap className="h-4 w-4" />, label: "Ping", value: metrics.ping != null ? metrics.ping.toFixed(0) : "-", unit: "ms", active: phase === "ping" });
-  if (mode === "full" || mode === "ping")
-    statDefs.push({ key: "jitter", icon: <Activity className="h-4 w-4" />, label: "Jitter", value: metrics.jitter != null ? metrics.jitter.toFixed(0) : "-", unit: "ms", active: phase === "ping" });
+    cards.push({
+      key: "upload",
+      label: t.metrics.upload,
+      icon: Upload,
+      value: results.upload != null ? fmtSpeed(results.upload) : phase === "upload" ? fmtSpeed(animated) : "–",
+      unit: unitMbps,
+      active: phase === "upload",
+      color: COLORS.upload,
+      data: series.upload,
+    });
+  if (mode === "full" || mode === "ping") {
+    cards.push({
+      key: "ping",
+      label: t.metrics.ping,
+      icon: Zap,
+      value: results.ping != null ? fmtMs(results.ping) : phase === "ping" && pingLive != null ? fmtMs(pingLive) : "–",
+      unit: t.units.ms,
+      active: phase === "ping",
+      color: COLORS.ping,
+      data: series.ping,
+    });
+    cards.push({
+      key: "jitter",
+      label: t.metrics.jitter,
+      icon: Activity,
+      value: results.jitter != null ? fmtMs(results.jitter) : "–",
+      unit: t.units.ms,
+      active: phase === "ping",
+      color: COLORS.jitter,
+    });
+  }
+  const gridClass =
+    cards.length >= 4
+      ? "grid-cols-2 sm:grid-cols-4"
+      : cards.length === 2
+        ? "mx-auto max-w-md grid-cols-2"
+        : "mx-auto max-w-[260px] grid-cols-1";
 
-  const statGridClass =
-    statDefs.length === 1
-      ? "grid-cols-1 max-w-[220px]"
-      : statDefs.length === 2
-        ? "grid-cols-2 max-w-sm divide-x divide-slate-200"
-        : "grid-cols-4 max-w-2xl divide-x divide-slate-200";
+  const rating = phase === "done" ? rateConnection(results) : null;
+  const checks = phase === "done" ? activityChecks(results) : [];
 
   return (
-    <div className="flex w-full animate-fade-in-up flex-col items-center">
-      {/* Connection line */}
-      <div className="flex flex-wrap items-center justify-center gap-x-2.5 gap-y-1 text-xs text-slate-400 sm:gap-x-3 sm:text-sm">
-        {/* Provider (logo + name) */}
-        <span className="flex items-center gap-2">
-          {ispLogo ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={ispLogo}
-              width={24}
-              height={24}
-              alt={info?.isp ?? "Provider logo"}
-              className="h-6 w-6 object-contain"
-            />
-          ) : (
-            <Wifi className="h-4 w-4 text-brand-500" aria-hidden="true" />
-          )}
-          <span className="font-mono text-xs font-semibold tracking-tight text-slate-700 sm:text-sm">
-            {info?.ok
-              ? info.ip || info.isp
-              : info
-                ? "Unavailable"
-                : "Detecting…"}
-          </span>
-        </span>
-
-        {/* Location (flag + city) */}
-        {locationLabel && (
-          <>
-            <span className="text-slate-300">•</span>
-            <span className="flex items-center gap-1.5">
-              {flag && (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={flag}
-                  srcSet={flag2x ? `${flag2x} 2x` : undefined}
-                  width={20}
-                  height={15}
-                  alt={info?.country ?? "Country flag"}
-                  className="h-3.5 w-5 rounded-[2px] object-cover shadow-sm ring-1 ring-black/5"
-                />
-              )}
-              {locationLabel}
-            </span>
-          </>
-        )}
-        <span className="text-slate-300">•</span>
-        <span className="flex items-center gap-1.5">
-          <Server className="h-3.5 w-3.5 text-brand-500" aria-hidden="true" />
-          Server: {serverLabel}
-        </span>
-      </div>
+    <div className="mx-auto w-full max-w-3xl animate-fade-in-up">
+      <ConnectionBar info={info} colo={colo} t={t} locale={locale} />
 
       {/* Gauge */}
-      <div className="relative mt-3 flex aspect-square w-full max-w-[270px] items-center justify-center sm:mt-5 sm:max-w-[360px]">
-        {/* Soft radial glow behind gauge */}
+      <div className="relative mx-auto -mb-9 mt-3 w-[248px] sm:-mb-11 sm:mt-5 sm:w-[300px] md:w-[320px]">
         <div
           aria-hidden="true"
-          className={`pointer-events-none absolute inset-10 -z-10 rounded-full bg-[radial-gradient(closest-side,rgba(37,99,235,0.18),transparent)] blur-2xl transition-opacity duration-700 ${
-            testing ? "animate-pulse opacity-100" : "opacity-50"
-          }`}
+          className={`pointer-events-none absolute inset-6 -z-10 rounded-full blur-3xl transition-opacity duration-700 ${
+            tone === "upload" ? "bg-violet-500/20" : tone === "ping" ? "bg-emerald-500/15" : "bg-brand-500/20"
+          } ${testing ? "opacity-100" : "opacity-40 dark:opacity-60"}`}
         />
-
-        <svg viewBox="0 0 280 280" className="h-full w-full" role="img" aria-label="Internet speed gauge">
-          <defs>
-            <linearGradient id="gaugeGradient" x1="0%" y1="100%" x2="100%" y2="0%">
-              <stop offset="0%" stopColor="#06b6d4" />
-              <stop offset="55%" stopColor="#2563eb" />
-              <stop offset="100%" stopColor="#10b981" />
-            </linearGradient>
-            <filter id="glow" x="-30%" y="-30%" width="160%" height="160%">
-              <feGaussianBlur stdDeviation="3.5" result="b" />
-              <feMerge>
-                <feMergeNode in="b" />
-                <feMergeNode in="SourceGraphic" />
-              </feMerge>
-            </filter>
-          </defs>
-
-          {/* Track */}
-          <path d={TRACK_PATH} fill="none" stroke="#e8edf5" strokeWidth={13} strokeLinecap="round" />
-
-          {/* Ticks (dynamic scale) — faint before a test, full once it starts */}
-          {gaugeTicks.map((t, i) => {
-            const angle = START_ANGLE + SWEEP * (i / (gaugeTicks.length - 1));
-            const a = point(angle, RADIUS - 1);
-            const b = point(angle, RADIUS - 10);
-            const label = point(angle, RADIUS - 26);
-            const idle = phase === "idle";
-            return (
-              <g key={i}>
-                <line
-                  x1={a.x}
-                  y1={a.y}
-                  x2={b.x}
-                  y2={b.y}
-                  stroke={idle ? "#e2e8f0" : "#cbd5e1"}
-                  strokeWidth={2}
-                  strokeLinecap="round"
-                />
-                <text
-                  x={label.x}
-                  y={label.y}
-                  textAnchor="middle"
-                  dominantBaseline="middle"
-                  className={idle ? "fill-slate-300" : "fill-slate-400"}
-                  fontSize="9"
-                  fontWeight="700"
-                >
-                  {tickLabel(t)}
-                </text>
-              </g>
-            );
-          })}
-
-          {/* Ping scanning spinner */}
-          {phase === "ping" && (
-            <g style={{ transformOrigin: "140px 140px" }} className="animate-spin">
-              <path d={PING_ARC} fill="none" stroke="url(#gaugeGradient)" strokeWidth={13} strokeLinecap="round" opacity={0.85} />
-            </g>
-          )}
-
-          {/* Progress arc with glow */}
-          {phase !== "ping" && fraction > 0.002 && (
-            <path
-              d={progressPath}
-              fill="none"
-              stroke="url(#gaugeGradient)"
-              strokeWidth={13}
-              strokeLinecap="round"
-              filter="url(#glow)"
-            />
-          )}
-
-          {/* Glowing marker dot at the arc tip (keeps the center clear) */}
-          {phase !== "ping" && fraction > 0.002 && (
-            <>
-              <circle cx={marker.x} cy={marker.y} r={11} fill="#2563eb" opacity={0.18} filter="url(#glow)" />
-              <circle cx={marker.x} cy={marker.y} r={7} fill="#ffffff" stroke="url(#gaugeGradient)" strokeWidth={4} />
-            </>
-          )}
-        </svg>
-
-        {/* Center content */}
-        <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center text-center">
-          {phase === "idle" ? (
-            <button
-              type="button"
-              onClick={runTest}
-              className="pointer-events-auto relative flex h-24 w-24 items-center justify-center rounded-full bg-gradient-to-br from-cyan-400 to-brand-600 text-xl font-extrabold tracking-wide text-white shadow-xl shadow-brand-500/30 transition-transform duration-200 hover:scale-105 active:scale-95 sm:h-28 sm:w-28 sm:text-2xl"
-            >
-              <span className="absolute inset-0 animate-ping rounded-full bg-brand-400/20" />
-              <span className="relative">GO</span>
-            </button>
-          ) : phase === "ping" ? (
-            <div className="animate-scale-in flex flex-col items-center">
-              <span className="text-[11px] font-bold uppercase tracking-[0.3em] text-brand-600">
-                Ping
-              </span>
-              <div className="mt-3 flex gap-1.5">
-                {[0, 1, 2].map((i) => (
-                  <span
-                    key={i}
-                    className="h-2.5 w-2.5 animate-bounce rounded-full bg-brand-500"
-                    style={{ animationDelay: `${i * 0.15}s` }}
-                  />
-                ))}
-              </div>
-            </div>
-          ) : phase === "done" ? (
-            <button
-              type="button"
-              onClick={runTest}
-              aria-label="Test again"
-              className="animate-scale-in pointer-events-auto flex h-24 w-24 flex-col items-center justify-center rounded-full bg-gradient-to-br from-cyan-400 to-brand-600 text-white shadow-xl shadow-brand-500/30 transition-transform duration-200 hover:scale-105 active:scale-95 sm:h-28 sm:w-28"
-            >
-              <RotateCcw className="h-7 w-7" aria-hidden="true" />
-              <span className="mt-1.5 text-[11px] font-bold uppercase tracking-widest">
-                Again
-              </span>
-            </button>
-          ) : (
-            <div className="animate-scale-in flex flex-col items-center">
-              <span className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.18em] text-brand-600">
-                <PhaseIcon className="h-3.5 w-3.5" aria-hidden="true" />
-                {PHASE_LABEL[phase]}
-              </span>
-              <span className="mt-1 bg-gradient-to-b from-slate-900 to-slate-600 bg-clip-text text-5xl font-extrabold leading-none tabular-nums tracking-tight text-transparent sm:text-7xl">
-                {fmt(animated)}
-              </span>
-              <span className="mt-2 text-xs font-bold uppercase tracking-[0.3em] text-slate-400">
-                Mbps
-              </span>
-            </div>
-          )}
-        </div>
+        <Gauge
+          fraction={fraction}
+          ticks={ticks}
+          tone={tone}
+          spinning={phase === "ping" && !msScale}
+          dim={phase === "idle" || phase === "cancelled" || phase === "error"}
+          label={t.gaugeLabel}
+        >
+          <GaugeCenter
+            phase={phase}
+            mode={mode}
+            t={t}
+            onStart={run}
+            value={
+              phase === "ping"
+                ? pingLive != null
+                  ? fmtMs(pingLive)
+                  : "–"
+                : phase === "done"
+                  ? results.download != null
+                    ? fmtSpeed(results.download)
+                    : results.upload != null
+                      ? fmtSpeed(results.upload)
+                      : results.ping != null
+                        ? fmtMs(results.ping)
+                        : "–"
+                  : fmtSpeed(animated)
+            }
+          />
+        </Gauge>
       </div>
 
-      {/* Inline stats (no cards) — only the relevant tiles for this mode */}
-      <div className={`mx-auto mt-5 grid w-full sm:mt-7 ${statGridClass}`}>
-        {statDefs.map((s) => (
-          <Stat key={s.key} icon={s.icon} label={s.label} value={s.value} unit={s.unit} active={s.active} />
+      {/* Status / controls row */}
+      <div className="relative mt-0 flex min-h-[44px] flex-wrap items-center justify-center gap-x-3 gap-y-2">
+        {phase === "idle" && <p className="text-sm muted">{t.status.idle.replace("{s}", String(DURATION_S[mode]))}</p>}
+        {phase === "cancelled" && <p className="text-sm muted">{t.status.cancelled}</p>}
+        {testing && (
+          <>
+            {steps.length > 1 ? (
+              <Stepper steps={steps} phase={phase} t={t} />
+            ) : (
+              <p className="flex items-center gap-2 text-sm font-medium text-slate-700 dark:text-slate-300">
+                <span className="relative flex h-2 w-2">
+                  <span className="absolute inline-flex h-full w-full rounded-full bg-brand-500 opacity-60 motion-safe:animate-ping" />
+                  <span className="relative inline-flex h-2 w-2 rounded-full bg-brand-500" />
+                </span>
+                {t.status[phase as Step]}
+              </p>
+            )}
+            <button type="button" onClick={stop} className="btn-ghost px-3 py-1.5 text-xs">
+              <Square className="h-3 w-3 fill-current" aria-hidden="true" />
+              {t.stop}
+            </button>
+          </>
+        )}
+        {phase === "done" && (
+          <>
+            <button type="button" onClick={run} className="btn-primary px-4 py-2.5">
+              <RotateCcw className="h-4 w-4" aria-hidden="true" />
+              {t.testAgain}
+            </button>
+            <button type="button" onClick={copy} className="btn-secondary px-4 py-2.5">
+              {copied ? (
+                <Check className="h-4 w-4 text-emerald-500" aria-hidden="true" />
+              ) : (
+                <Copy className="h-4 w-4" aria-hidden="true" />
+              )}
+              {copied ? t.copied : t.copy}
+            </button>
+            {canShare && (
+              <button type="button" onClick={share} className="btn-secondary px-4 py-2.5">
+                <Share2 className="h-4 w-4" aria-hidden="true" />
+                {t.share}
+              </button>
+            )}
+          </>
+        )}
+        {phase === "error" && error && (
+          <div
+            role="alert"
+            className="flex w-full max-w-xl flex-col items-center gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-start text-sm text-amber-900 dark:border-amber-400/20 dark:bg-amber-400/10 dark:text-amber-200 sm:flex-row"
+          >
+            <TriangleAlert className="h-5 w-5 shrink-0 text-amber-500" aria-hidden="true" />
+            <p className="flex-1">{t.errors[error]}</p>
+            <button type="button" onClick={run} className="btn-secondary shrink-0 px-3 py-2 text-xs">
+              <RotateCcw className="h-3.5 w-3.5" aria-hidden="true" />
+              {t.retry}
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* Result cards */}
+      <div className={`mt-4 grid gap-2.5 sm:mt-5 sm:gap-3 ${gridClass}`}>
+        {cards.map(({ key, ...c }) => (
+          <ResultCard key={key} {...c} />
         ))}
       </div>
 
-      {/* Status */}
-      {error && (
-        <div className="mt-5 flex items-center justify-center sm:mt-7">
-          <p className="text-sm font-medium text-red-500" role="alert">
-            {error}
+      {/* Verdict */}
+      {rating && (
+        <section className="card mt-3 animate-fade-in-up p-4 text-start sm:mt-4 sm:p-5" aria-labelledby="st-verdict">
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
+            <span
+              className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ring-1 ring-inset ${RATING_TONE[rating.rating]}`}
+            >
+              {t.verdict.ratings[rating.rating]}
+            </span>
+            <h3 id="st-verdict" className="text-sm font-semibold text-slate-900 dark:text-white">
+              {t.verdict.title}
+            </h3>
+          </div>
+          <p className="mt-2 text-sm leading-relaxed muted">
+            {rating.basis === "download"
+              ? t.verdict.speedDesc[rating.rating]
+              : rating.basis === "upload"
+                ? t.verdict.uploadDesc[rating.rating]
+                : t.verdict.latencyDesc[rating.rating]}
           </p>
-        </div>
+          {checks.length > 0 && (
+            <ul className="mt-3 grid grid-cols-1 gap-1.5 min-[400px]:grid-cols-2 sm:grid-cols-3">
+              {checks.map((c) => (
+                <li
+                  key={c.id}
+                  className="flex items-center gap-2 rounded-lg bg-slate-50 px-2.5 py-2 text-[13px] text-slate-700 dark:bg-white/[0.04] dark:text-slate-300"
+                >
+                  {c.ok ? (
+                    <CircleCheck className="h-4 w-4 shrink-0 text-emerald-500" aria-hidden="true" />
+                  ) : (
+                    <CircleMinus className="h-4 w-4 shrink-0 text-amber-500" aria-hidden="true" />
+                  )}
+                  <span className="min-w-0 flex-1">{t.verdict.activities[c.id]}</span>
+                  <span className="sr-only">: {c.ok ? t.verdict.ok : t.verdict.notIdeal}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
       )}
+
+      {/* Local history */}
+      {!testing && history.length > 0 && (
+        <HistoryPanel
+          history={history}
+          t={t}
+          locale={locale}
+          onClear={() => {
+            clearHistory();
+            setHistory([]);
+          }}
+        />
+      )}
+
+      <div role="status" aria-live="polite" className="sr-only">
+        {announce}
+      </div>
     </div>
   );
 }
 
-function Stat({
-  icon,
+// ---------------------------------------------------------------------------
+// Pieces
+// ---------------------------------------------------------------------------
+
+function summaryLines(r: Results, t: SpeedTestMessages, locale: Locale): string[] {
+  const out: string[] = [];
+  if (r.download != null) out.push(`${t.metrics.download}: ${formatSpeed(r.download, locale)} ${t.units.mbps}`);
+  if (r.upload != null) out.push(`${t.metrics.upload}: ${formatSpeed(r.upload, locale)} ${t.units.mbps}`);
+  if (r.ping != null) out.push(`${t.metrics.ping}: ${formatMs(r.ping, locale)} ${t.units.ms}`);
+  if (r.jitter != null) out.push(`${t.metrics.jitter}: ${formatMs(r.jitter, locale)} ${t.units.ms}`);
+  return out;
+}
+
+function GaugeCenter({
+  phase,
+  mode,
+  value,
+  t,
+  onStart,
+}: {
+  phase: Phase;
+  mode: Mode;
+  value: string;
+  t: SpeedTestMessages;
+  onStart: () => void;
+}) {
+  if (phase === "idle" || phase === "cancelled" || phase === "error") {
+    return (
+      <button
+        type="button"
+        onClick={onStart}
+        aria-label={t.start}
+        className="group relative flex aspect-square w-[44%] items-center justify-center rounded-full bg-gradient-to-br from-brand-500 to-brand-700 text-white shadow-xl shadow-brand-600/30 ring-[6px] ring-brand-500/10 transition-transform duration-200 hover:scale-[1.04] active:scale-[0.97] dark:from-brand-400 dark:to-brand-600 dark:shadow-brand-500/20 dark:ring-brand-400/10"
+      >
+        <span
+          aria-hidden="true"
+          className="absolute inset-0 rounded-full bg-brand-500/25 motion-safe:animate-ping [animation-duration:2.6s]"
+        />
+        <span className={`relative font-extrabold tracking-wide ${t.go.length > 3 ? "text-lg sm:text-xl" : "text-2xl sm:text-3xl"}`}>
+          {t.go}
+        </span>
+      </button>
+    );
+  }
+
+  const shown: Step =
+    phase === "done" ? (mode === "full" ? "download" : mode) : (phase as Step);
+  const Icon = shown === "upload" ? Upload : shown === "ping" ? Zap : Download;
+  const unit = shown === "ping" ? t.units.ms : t.units.mbps;
+  const labelTone =
+    shown === "upload"
+      ? "text-violet-600 dark:text-violet-400"
+      : shown === "ping"
+        ? "text-emerald-600 dark:text-emerald-400"
+        : "text-brand-600 dark:text-brand-400";
+
+  return (
+    <div className="flex flex-col items-center" aria-hidden={phase !== "done"}>
+      <span className={`inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider ${labelTone}`}>
+        <Icon className="h-3.5 w-3.5" aria-hidden="true" />
+        {t.metrics[shown]}
+      </span>
+      <span className="tabular mt-1 text-5xl font-extrabold leading-none tracking-tight text-slate-900 dark:text-white sm:text-6xl">
+        {value}
+      </span>
+      <span className="mt-1.5 text-xs font-semibold text-slate-400 dark:text-slate-500">{unit}</span>
+    </div>
+  );
+}
+
+function Stepper({ steps, phase, t }: { steps: Step[]; phase: Phase; t: SpeedTestMessages }) {
+  const current = steps.indexOf(phase as Step);
+  return (
+    <ol aria-label={t.steps} className="flex items-center gap-1.5 text-xs font-medium sm:gap-2 sm:text-sm">
+      {steps.map((s, i) => {
+        const state = i < current ? "done" : i === current ? "active" : "todo";
+        return (
+          <li key={s} className="flex items-center gap-1.5 sm:gap-2" aria-current={state === "active" ? "step" : undefined}>
+            {i > 0 && (
+              <span
+                aria-hidden="true"
+                className={`h-px w-4 sm:w-6 ${state === "todo" ? "bg-slate-200 dark:bg-white/10" : "bg-brand-400/60"}`}
+              />
+            )}
+            <span
+              className={`flex h-5 w-5 items-center justify-center rounded-full ${
+                state === "done"
+                  ? "bg-emerald-500 text-white"
+                  : state === "active"
+                    ? "bg-brand-600 text-white ring-4 ring-brand-500/15 dark:bg-brand-500"
+                    : "bg-slate-100 text-slate-400 ring-1 ring-inset ring-slate-200 dark:bg-white/5 dark:ring-white/10"
+              }`}
+            >
+              {state === "done" ? (
+                <Check className="h-3 w-3" strokeWidth={3} aria-hidden="true" />
+              ) : (
+                <span className={`h-1.5 w-1.5 rounded-full ${state === "active" ? "bg-white motion-safe:animate-pulse" : "bg-current"}`} />
+              )}
+            </span>
+            <span
+              className={
+                state === "active"
+                  ? "text-slate-900 dark:text-white"
+                  : state === "done"
+                    ? "text-slate-600 dark:text-slate-300"
+                    : "text-slate-400 dark:text-slate-500"
+              }
+            >
+              {t.metrics[s]}
+            </span>
+          </li>
+        );
+      })}
+    </ol>
+  );
+}
+
+function ResultCard({
   label,
+  icon: Icon,
   value,
   unit,
   active,
+  color,
+  data,
 }: {
-  icon: React.ReactNode;
   label: string;
+  icon: React.ComponentType<{ className?: string; style?: React.CSSProperties }>;
   value: string;
   unit: string;
   active: boolean;
+  color: string;
+  data?: number[];
 }) {
   return (
-    <div className="px-2 text-center sm:px-4">
-      <div
-        className={`flex items-center justify-center gap-1.5 text-[10px] font-bold uppercase tracking-wider transition-colors sm:text-xs ${
-          active ? "text-brand-600" : "text-slate-400"
-        }`}
-      >
-        <span>{icon}</span>
-        <span className="hidden sm:inline">{label}</span>
-      </div>
-      <div className="mt-1.5 flex items-baseline justify-center gap-1">
-        <span
-          className={`text-2xl font-extrabold tabular-nums transition-colors sm:text-3xl ${
-            active ? "text-brand-600" : "text-slate-900"
-          }`}
-        >
-          {value}
+    <div
+      className={`card relative flex flex-col overflow-hidden p-3 text-start transition-shadow sm:p-4 ${
+        active ? "ring-2 ring-brand-500/30 dark:ring-brand-400/30" : ""
+      }`}
+    >
+      <div className="flex items-center justify-between gap-2">
+        <span className="flex min-w-0 items-center gap-1.5 text-xs font-semibold text-slate-500 dark:text-slate-400">
+          <Icon className="h-3.5 w-3.5 shrink-0" style={{ color }} />
+          <span className="truncate">{label}</span>
         </span>
-        <span className="text-[11px] font-semibold text-slate-400">{unit}</span>
+        {active && <span className="h-1.5 w-1.5 shrink-0 rounded-full motion-safe:animate-pulse" style={{ background: color }} />}
       </div>
+      <div className="mt-1">
+        <span dir="ltr" className="inline-flex items-baseline gap-1">
+          <span className="tabular text-2xl font-bold tracking-tight text-slate-900 dark:text-white sm:text-[28px]">
+            {value}
+          </span>
+          <span className="text-xs font-medium text-slate-400 dark:text-slate-500">{unit}</span>
+        </span>
+      </div>
+      {data && <Sparkline data={data} color={color} className="mt-2 h-7 w-full" />}
     </div>
+  );
+}
+
+function ConnectionBar({
+  info,
+  colo,
+  t,
+  locale,
+}: {
+  info: ConnInfo | null;
+  colo: string;
+  t: SpeedTestMessages;
+  locale: Locale;
+}) {
+  const ispLogo = ispLogoUrl(info?.isp);
+  const flag = flagUrl(info?.countryCode);
+  const flag2x = flagUrl(info?.countryCode, true);
+  const country = info?.ok ? countryName(info.countryCode, info.country, locale) : "";
+  const parts = [info?.city, country].filter(Boolean) as string[];
+  const sep = locale === "ar" ? "، " : ", ";
+  const place = parts.length ? (
+    <>
+      {parts.map((p, i) => (
+        <span key={i}>
+          {i > 0 && sep}
+          <bdi>{p}</bdi>
+        </span>
+      ))}
+    </>
+  ) : null;
+  const loading = info == null;
+  const value = "font-medium text-slate-700 dark:text-slate-200";
+
+  return (
+    <dl className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1.5 text-xs text-slate-500 dark:text-slate-400 sm:gap-x-5 sm:text-[13px]">
+      <div className="flex min-w-0 items-center gap-1.5">
+        <dt className="sr-only">{t.conn.provider}</dt>
+        {ispLogo ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={ispLogo} width={16} height={16} alt="" className="h-4 w-4 rounded-sm object-contain" />
+        ) : (
+          <Wifi className="h-3.5 w-3.5 text-brand-500" aria-hidden="true" />
+        )}
+        <dd className={`max-w-[16rem] truncate ${value}`}>
+          {loading ? t.conn.detecting : info.ok ? info.isp || "–" : t.conn.unavailable}
+        </dd>
+      </div>
+      {info?.ok && info.ip && (
+        <div className="flex items-center gap-1.5">
+          <dt className="text-slate-400 dark:text-slate-500">IP</dt>
+          <dd dir="ltr" className={`font-mono text-[11px] sm:text-xs ${value}`}>
+            {info.ip}
+          </dd>
+        </div>
+      )}
+      {place && (
+        <div className="flex items-center gap-1.5">
+          <dt className="sr-only">{t.conn.location}</dt>
+          {flag ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={flag}
+              srcSet={flag2x ? `${flag2x} 2x` : undefined}
+              width={18}
+              height={13}
+              alt=""
+              className="h-[13px] w-[18px] rounded-[2px] object-cover ring-1 ring-black/5 dark:ring-white/10"
+            />
+          ) : (
+            <MapPin className="h-3.5 w-3.5 text-brand-500" aria-hidden="true" />
+          )}
+          <dd className={value}>{place}</dd>
+        </div>
+      )}
+      <div className="flex items-center gap-1.5">
+        <dt className="flex items-center gap-1.5">
+          <Server className="h-3.5 w-3.5 text-brand-500" aria-hidden="true" />
+          <span className="sr-only">{t.conn.server}</span>
+        </dt>
+        <dd className={value}>
+          {colo ? (
+            <>
+              {coloCity(colo)}
+              {coloCity(colo) !== colo && <span className="ms-1 text-slate-400 dark:text-slate-500">({colo})</span>}
+            </>
+          ) : (
+            t.conn.auto
+          )}
+        </dd>
+      </div>
+    </dl>
+  );
+}
+
+function HistoryPanel({
+  history,
+  t,
+  locale,
+  onClear,
+}: {
+  history: HistoryEntry[];
+  t: SpeedTestMessages;
+  locale: Locale;
+  onClear: () => void;
+}) {
+  const df = new Intl.DateTimeFormat(numberLocale(locale), {
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+  const dash = <span className="text-slate-300 dark:text-slate-600">–</span>;
+  return (
+    <details className="group card-muted mt-3 text-start sm:mt-4">
+      <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 text-sm font-semibold text-slate-700 dark:text-slate-200 [&::-webkit-details-marker]:hidden">
+        <span className="flex items-center gap-2">
+          <HistoryIcon className="h-4 w-4 text-slate-400" aria-hidden="true" />
+          {t.history.title}
+          <span className="rounded-full bg-slate-200/70 px-1.5 text-[11px] font-semibold text-slate-600 dark:bg-white/10 dark:text-slate-300">
+            {history.length}
+          </span>
+        </span>
+        <ChevronDown className="h-4 w-4 text-slate-400 transition-transform group-open:rotate-180" aria-hidden="true" />
+      </summary>
+      <div className="px-2 pb-3 sm:px-4">
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="text-xs text-slate-500 dark:text-slate-400">
+                <th className="px-2 py-1.5 text-start font-medium">{t.history.date}</th>
+                <th className="px-2 py-1.5 text-end font-medium">
+                  <Download className="inline h-3.5 w-3.5" style={{ color: COLORS.download }} aria-hidden="true" />
+                  <span className="sr-only">{t.metrics.download}</span>
+                </th>
+                <th className="px-2 py-1.5 text-end font-medium">
+                  <Upload className="inline h-3.5 w-3.5" style={{ color: COLORS.upload }} aria-hidden="true" />
+                  <span className="sr-only">{t.metrics.upload}</span>
+                </th>
+                <th className="px-2 py-1.5 text-end font-medium">
+                  <Zap className="inline h-3.5 w-3.5" style={{ color: COLORS.ping }} aria-hidden="true" />
+                  <span className="sr-only">{t.metrics.ping}</span>
+                </th>
+              </tr>
+            </thead>
+            <tbody className="tabular">
+              {history.map((h) => (
+                <tr key={h.t} className="border-t border-slate-200/70 dark:border-white/[0.06]">
+                  <td className="whitespace-nowrap px-2 py-1.5 text-slate-500 dark:text-slate-400">{df.format(h.t)}</td>
+                  <td dir="ltr" className="whitespace-nowrap px-2 py-1.5 text-end font-semibold text-slate-800 rtl:text-start dark:text-slate-100">
+                    {h.download != null ? formatSpeed(h.download, locale) : dash}
+                  </td>
+                  <td dir="ltr" className="whitespace-nowrap px-2 py-1.5 text-end font-semibold text-slate-800 rtl:text-start dark:text-slate-100">
+                    {h.upload != null ? formatSpeed(h.upload, locale) : dash}
+                  </td>
+                  <td dir="ltr" className="whitespace-nowrap px-2 py-1.5 text-end text-slate-600 rtl:text-start dark:text-slate-300">
+                    {h.ping != null ? `${formatMs(h.ping, locale)} ${t.units.ms}` : dash}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <div className="mt-2 flex items-center justify-between gap-3 px-2 text-xs muted">
+          <span>
+            {t.units.mbps} · {t.history.note}
+          </span>
+          <button type="button" onClick={onClear} className="font-semibold text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white">
+            {t.history.clear}
+          </button>
+        </div>
+      </div>
+    </details>
   );
 }

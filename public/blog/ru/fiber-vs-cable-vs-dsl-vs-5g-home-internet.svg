@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1200" y2="630" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#064e3b"/><stop offset=".6" stop-color="#059669"/><stop offset="1" stop-color="#5eead4" stop-opacity=".85"/>
+    </linearGradient>
+    <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse"><path d="M40 0H0V40" fill="none" stroke="#fff" stroke-opacity=".06"/></pattern>
+  </defs>
+  <rect width="1200" height="630" fill="url(#bg)"/>
+  <rect width="1200" height="630" fill="url(#grid)"/>
+  <circle cx="1060" cy="90" r="220" fill="#fff" fill-opacity=".06"/>
+  <circle cx="980" cy="560" r="160" fill="#fff" fill-opacity=".05"/>
+  <rect x="72" y="70" width="272" height="44" rx="22" fill="#fff" fill-opacity=".16"/>
+  <text x="96" y="99" font-size="20" font-weight="700" letter-spacing="2" fill="#fff">ТИПЫ ПОДКЛЮЧЕНИЯ</text>
+  <text x="72" y="232.2" font-size="46" font-weight="800" fill="#fff">Оптоволокно,</text><text x="72" y="287.4" font-size="46" font-weight="800" fill="#fff">кабельный интернет,</text><text x="72" y="342.59999999999997" font-size="46" font-weight="800" fill="#fff">DSL или 5G: сравнение</text><text x="72" y="397.79999999999995" font-size="46" font-weight="800" fill="#fff">домашнего интернета</text>
+  <text x="72" y="560" font-size="24" font-weight="600" fill="#fff" fill-opacity=".75">testspeedinternet.com</text>
+  <g transform="translate(790 135)">
+    <path d="M20 90 C140 90 160 180 340 180" fill="none" stroke="#5eead4" stroke-width="14" stroke-linecap="round"/>
+    <path d="M20 180 C140 180 200 180 340 180" fill="none" stroke="#fff" stroke-opacity=".7" stroke-width="14" stroke-linecap="round"/>
+    <path d="M20 270 C140 270 160 180 340 180" fill="none" stroke="#fff" stroke-opacity=".35" stroke-width="14" stroke-linecap="round"/>
+    <circle cx="20" cy="90" r="16" fill="#5eead4"/><circle cx="20" cy="180" r="16" fill="#fff"/><circle cx="20" cy="270" r="16" fill="#fff" fill-opacity=".5"/>
+    <circle cx="330" cy="180" r="34" fill="#fff" fill-opacity=".2" stroke="#fff" stroke-width="6"/></g>
+</svg>

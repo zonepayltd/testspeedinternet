@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" font-family="'Noto Sans Arabic', 'Segoe UI', Tahoma, Arial, sans-serif">
+  <defs>
+    <linearGradient id="bg" x1="1200" y1="0" x2="0" y2="630" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#134e4a"/><stop offset=".6" stop-color="#0d9488"/><stop offset="1" stop-color="#a3e635" stop-opacity=".85"/>
+    </linearGradient>
+    <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse"><path d="M40 0H0V40" fill="none" stroke="#fff" stroke-opacity=".06"/></pattern>
+  </defs>
+  <rect width="1200" height="630" fill="url(#bg)"/>
+  <rect width="1200" height="630" fill="url(#grid)"/>
+  <circle cx="140" cy="90" r="220" fill="#fff" fill-opacity=".06"/>
+  <circle cx="220" cy="560" r="160" fill="#fff" fill-opacity=".05"/>
+  <rect x="911" y="70" width="217" height="44" rx="22" fill="#fff" fill-opacity=".16"/>
+  <text x="1104" y="99" text-anchor="start" direction="rtl" font-size="20" font-weight="700" letter-spacing="0" fill="#fff">العمل عن بُعد</text>
+  <text x="1128" y="283.8" text-anchor="start" direction="rtl" font-size="52" font-weight="800" fill="#fff">ما سرعة الإنترنت التي</text><text x="1128" y="346.2" text-anchor="start" direction="rtl" font-size="52" font-weight="800" fill="#fff">تحتاجها للعمل من المنزل؟</text>
+  <text x="1128" y="560" text-anchor="end" font-size="24" font-weight="600" fill="#fff" fill-opacity=".75">testspeedinternet.com</text>
+  <g transform="translate(50 135)">
+    <rect x="60" y="80" width="240" height="160" rx="16" fill="#fff" fill-opacity=".16" stroke="#fff" stroke-opacity=".5" stroke-width="6"/>
+    <rect x="30" y="250" width="300" height="22" rx="11" fill="#fff" fill-opacity=".5"/>
+    <circle cx="140" cy="145" r="26" fill="#a3e635"/><rect x="108" y="180" width="64" height="34" rx="17" fill="#a3e635"/>
+    <circle cx="225" cy="145" r="26" fill="#fff" fill-opacity=".7"/><rect x="193" y="180" width="64" height="34" rx="17" fill="#fff" fill-opacity=".7"/>
+    <path d="M120 320 q60 -30 120 0" fill="none" stroke="#a3e635" stroke-width="10" stroke-linecap="round"/></g>
+</svg>

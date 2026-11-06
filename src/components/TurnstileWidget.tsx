@@ -1,6 +1,9 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useLocale } from "@/i18n/client";
+import { pick } from "@/i18n/config";
+import { contactMessages } from "@/i18n/messages/contact";
 
 declare global {
   interface Window {
@@ -15,6 +18,7 @@ const ENV_SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY ?? "";
 const SCRIPT_SRC = "https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit";
 
 export default function TurnstileWidget({ onVerify }: { onVerify: (token: string) => void }) {
+  const t = pick(contactMessages, useLocale()).form;
   const ref = useRef<HTMLDivElement>(null);
   const widgetId = useRef<string | null>(null);
   const [siteKey, setSiteKey] = useState(ENV_SITE_KEY);
@@ -40,7 +44,8 @@ export default function TurnstileWidget({ onVerify }: { onVerify: (token: string
         callback: (token: string) => onVerify(token),
         "error-callback": () => onVerify(""),
         "expired-callback": () => onVerify(""),
-        theme: "light",
+        // Match the site theme (html.dark is set by the theme toggle).
+        theme: document.documentElement.classList.contains("dark") ? "dark" : "light",
       });
     };
 
@@ -62,8 +67,8 @@ export default function TurnstileWidget({ onVerify }: { onVerify: (token: string
 
   if (resolved && !siteKey) {
     return (
-      <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-4 py-3 text-center text-xs text-slate-400">
-        Captcha not configured yet (set it in Admin → Settings).
+      <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-4 py-3 text-center text-xs text-slate-500 dark:border-white/10 dark:bg-white/[0.03] dark:text-slate-400">
+        {t.captchaNotConfigured}
       </div>
     );
   }

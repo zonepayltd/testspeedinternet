@@ -4,6 +4,7 @@ import path from "node:path";
 import matter from "gray-matter";
 import { adminDb, adminConfigured } from "@/lib/firebaseAdmin";
 import { Timestamp } from "firebase-admin/firestore";
+import { DEFAULT_LOCALE, LOCALES, type Locale } from "@/i18n/config";
 
 export type PostFaq = { q: string; a: string };
 
@@ -27,6 +28,7 @@ export type Post = {
   readingMinutes: number;
   source: "file" | "admin";
   rank: number; // higher shows first among posts published the same day
+  locale: Locale;
 };
 
 const ms = (t?: Timestamp) => (t ? t.toMillis() : 0);
@@ -68,39 +70,46 @@ function toPost(id: string, x: FirebaseFirestore.DocumentData): Post {
     readingMinutes: readingMinutes(content),
     source: "admin",
     rank: 0,
+    locale: DEFAULT_LOCALE,
   };
 }
 
-// ---- Articles stored as Markdown files in src/content/blog -----------------
+// ---- Articles stored as Markdown files in src/content/blog/<locale>/<slug>.md ----
+// The same slug is used in every language so translations link to each other.
 
-const CONTENT_DIR = path.join(process.cwd(), "src", "content", "blog");
-let fileCache: Post[] | null = null;
+const CONTENT_ROOT = path.join(process.cwd(), "src", "content", "blog");
+const fileCache = new Map<Locale, Post[]>();
 
-function loadFilePosts(): Post[] {
-  if (fileCache && process.env.NODE_ENV === "production") return fileCache;
+function loadFilePosts(locale: Locale): Post[] {
+  const cached = fileCache.get(locale);
+  if (cached && process.env.NODE_ENV === "production") return cached;
+  const dir = path.join(CONTENT_ROOT, locale);
   let files: string[] = [];
   try {
-    files = fs.readdirSync(CONTENT_DIR).filter((f) => f.endsWith(".md"));
+    files = fs.readdirSync(dir).filter((f) => f.endsWith(".md"));
   } catch {
     return [];
   }
   const posts: Post[] = [];
   for (const file of files) {
     try {
-      const raw = fs.readFileSync(path.join(CONTENT_DIR, file), "utf8");
+      const raw = fs.readFileSync(path.join(dir, file), "utf8");
       const { data, content } = matter(raw);
       const slug = file.replace(/\.md$/, "");
       const date = Date.parse(data.date || "") || 0;
       const updated = Date.parse(data.updated || "") || date;
+      // Covers are generated for every language by scripts/generate-covers.mjs.
+      // (public/ isn't on the server filesystem in production, so don't check for the file.)
+      const localizedCover = locale !== DEFAULT_LOCALE;
       posts.push({
-        id: `file:${slug}`,
+        id: `file:${locale}:${slug}`,
         slug,
         title: data.title || slug,
         seoTitle: data.seoTitle || "",
         description: data.description || data.excerpt || "",
         excerpt: data.excerpt || "",
         content,
-        coverImage: data.cover || `/blog/${slug}.svg`,
+        coverImage: data.cover || (localizedCover ? `/blog/${locale}/${slug}.svg` : `/blog/${slug}.svg`),
         coverAlt: data.coverAlt || data.title || "",
         category: data.category || "Guides",
         tags: Array.isArray(data.tags) ? data.tags : [],
@@ -112,13 +121,19 @@ function loadFilePosts(): Post[] {
         readingMinutes: readingMinutes(content),
         source: "file",
         rank: Number(data.rank) || 0,
+        locale,
       });
     } catch {
       /* skip a broken file instead of breaking the blog */
     }
   }
-  fileCache = posts;
+  fileCache.set(locale, posts);
   return posts;
+}
+
+/** Languages a given article exists in (for hreflang + the language switcher). */
+export function postLocales(slug: string): Locale[] {
+  return LOCALES.filter((l) => loadFilePosts(l).some((p) => p.slug === slug && p.status === "published"));
 }
 
 async function loadAdminPosts(): Promise<Post[]> {
@@ -136,10 +151,11 @@ async function loadAdminPosts(): Promise<Post[]> {
 }
 
 // Admin posts win when both sources use the same slug.
-export async function getPublishedPosts(): Promise<Post[]> {
-  const admin = await loadAdminPosts();
+// Posts written in the admin panel are English-only.
+export async function getPublishedPosts(locale: Locale = DEFAULT_LOCALE): Promise<Post[]> {
+  const admin = locale === DEFAULT_LOCALE ? await loadAdminPosts() : [];
   const taken = new Set(admin.map((p) => p.slug));
-  const files = loadFilePosts().filter((p) => p.status === "published" && !taken.has(p.slug));
+  const files = loadFilePosts(locale).filter((p) => p.status === "published" && !taken.has(p.slug));
   return [...admin, ...files].sort(
     (a, b) =>
       new Date(b.createdAt).setHours(0, 0, 0, 0) - new Date(a.createdAt).setHours(0, 0, 0, 0) ||
@@ -149,7 +165,8 @@ export async function getPublishedPosts(): Promise<Post[]> {
   );
 }
 
-export async function getPostBySlug(slug: string): Promise<Post | null> {
+export async function getPostBySlug(slug: string, locale: Locale = DEFAULT_LOCALE): Promise<Post | null> {
+  if (locale !== DEFAULT_LOCALE) return loadFilePosts(locale).find((p) => p.slug === slug) || null;
   if (adminConfigured) {
     try {
       const snap = await adminDb().collection("posts").where("slug", "==", slug).limit(1).get();
@@ -158,11 +175,11 @@ export async function getPostBySlug(slug: string): Promise<Post | null> {
       /* fall through to files */
     }
   }
-  return loadFilePosts().find((p) => p.slug === slug) || null;
+  return loadFilePosts(DEFAULT_LOCALE).find((p) => p.slug === slug) || null;
 }
 
 export async function getRelatedPosts(post: Post, limit = 3): Promise<Post[]> {
-  const all = (await getPublishedPosts()).filter((p) => p.slug !== post.slug);
+  const all = (await getPublishedPosts(post.locale)).filter((p) => p.slug !== post.slug);
   const tags = new Set(post.tags.map((t) => t.toLowerCase()));
   const score = (p: Post) =>
     (p.category === post.category ? 3 : 0) + p.tags.filter((t) => tags.has(t.toLowerCase())).length;

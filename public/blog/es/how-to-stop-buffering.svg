@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1200" y2="630" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#3b0764"/><stop offset=".6" stop-color="#9333ea"/><stop offset="1" stop-color="#f472b6" stop-opacity=".85"/>
+    </linearGradient>
+    <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse"><path d="M40 0H0V40" fill="none" stroke="#fff" stroke-opacity=".06"/></pattern>
+  </defs>
+  <rect width="1200" height="630" fill="url(#bg)"/>
+  <rect width="1200" height="630" fill="url(#grid)"/>
+  <circle cx="1060" cy="90" r="220" fill="#fff" fill-opacity=".06"/>
+  <circle cx="980" cy="560" r="160" fill="#fff" fill-opacity=".05"/>
+  <rect x="72" y="70" width="174" height="44" rx="22" fill="#fff" fill-opacity=".16"/>
+  <text x="96" y="99" font-size="20" font-weight="700" letter-spacing="2" fill="#fff">STREAMING</text>
+  <text x="72" y="232.2" font-size="46" font-weight="800" fill="#fff">Cómo evitar el</text><text x="72" y="287.4" font-size="46" font-weight="800" fill="#fff">buffering al ver</text><text x="72" y="342.59999999999997" font-size="46" font-weight="800" fill="#fff">streaming: 10</text><text x="72" y="397.79999999999995" font-size="46" font-weight="800" fill="#fff">soluciones que</text>
+  <text x="72" y="560" font-size="24" font-weight="600" fill="#fff" fill-opacity=".75">testspeedinternet.com</text>
+  <g transform="translate(790 135)">
+    <rect x="30" y="70" width="300" height="190" rx="22" fill="#fff" fill-opacity=".16" stroke="#fff" stroke-opacity=".4" stroke-width="6"/>
+    <path d="M155 120 L225 165 L155 210 Z" fill="#fff"/>
+    <rect x="130" y="270" width="100" height="14" rx="7" fill="#fff" fill-opacity=".4"/>
+    <rect x="50" y="310" width="260" height="12" rx="6" fill="#fff" fill-opacity=".2"/>
+    <rect x="50" y="310" width="170" height="12" rx="6" fill="#f472b6"/></g>
+</svg>

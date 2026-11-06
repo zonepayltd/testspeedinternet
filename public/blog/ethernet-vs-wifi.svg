@@ -11,7 +11,7 @@
   <circle cx="980" cy="560" r="160" fill="#fff" fill-opacity=".05"/>
   <rect x="72" y="70" width="272" height="44" rx="22" fill="#fff" fill-opacity=".16"/>
   <text x="96" y="99" font-size="20" font-weight="700" letter-spacing="2" fill="#fff">CONNECTION TYPES</text>
-  <text x="72" y="235.65" font-size="46" font-weight="800" fill="#fff">Ethernet vs WiFi:</text><text x="72" y="288.55" font-size="46" font-weight="800" fill="#fff">Which Is Faster and</text><text x="72" y="341.45" font-size="46" font-weight="800" fill="#fff">When Should You Use</text><text x="72" y="394.35" font-size="46" font-weight="800" fill="#fff">Each?</text>
+  <text x="72" y="232.2" font-size="46" font-weight="800" fill="#fff">Ethernet vs WiFi:</text><text x="72" y="287.4" font-size="46" font-weight="800" fill="#fff">Which Is Faster and</text><text x="72" y="342.59999999999997" font-size="46" font-weight="800" fill="#fff">When Should You Use</text><text x="72" y="397.79999999999995" font-size="46" font-weight="800" fill="#fff">Each?</text>
   <text x="72" y="560" font-size="24" font-weight="600" fill="#fff" fill-opacity=".75">testspeedinternet.com</text>
   <g transform="translate(790 135)">
     <path d="M20 90 C140 90 160 180 340 180" fill="none" stroke="#5eead4" stroke-width="14" stroke-linecap="round"/>

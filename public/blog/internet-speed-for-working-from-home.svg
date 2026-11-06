@@ -11,7 +11,7 @@
   <circle cx="980" cy="560" r="160" fill="#fff" fill-opacity=".05"/>
   <rect x="72" y="70" width="202" height="44" rx="22" fill="#fff" fill-opacity=".16"/>
   <text x="96" y="99" font-size="20" font-weight="700" letter-spacing="2" fill="#fff">REMOTE WORK</text>
-  <text x="72" y="255.2" font-size="52" font-weight="800" fill="#fff">What Internet Speed</text><text x="72" y="315" font-size="52" font-weight="800" fill="#fff">Do You Need to Work</text><text x="72" y="374.79999999999995" font-size="52" font-weight="800" fill="#fff">From Home?</text>
+  <text x="72" y="252.6" font-size="52" font-weight="800" fill="#fff">What Internet Speed</text><text x="72" y="315" font-size="52" font-weight="800" fill="#fff">Do You Need to Work</text><text x="72" y="377.4" font-size="52" font-weight="800" fill="#fff">From Home?</text>
   <text x="72" y="560" font-size="24" font-weight="600" fill="#fff" fill-opacity=".75">testspeedinternet.com</text>
   <g transform="translate(790 135)">
     <rect x="60" y="80" width="240" height="160" rx="16" fill="#fff" fill-opacity=".16" stroke="#fff" stroke-opacity=".5" stroke-width="6"/>

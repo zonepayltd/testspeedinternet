@@ -6,6 +6,9 @@ import { useAds } from "./AdsContext";
 import AdUnit from "./AdUnit";
 import CustomAdCard from "./CustomAdCard";
 import { adMatchesPath, type Placement } from "@/lib/adsModel";
+import { splitLocale, pick } from "@/i18n/config";
+import { useLocale } from "@/i18n/client";
+import { commonMessages } from "@/i18n/messages/common";
 
 // Tag the advertiser's link so their analytics shows the traffic came from us.
 function withUtm(link: string): string {
@@ -56,7 +59,9 @@ export default function AdSlot({
   label?: boolean;
 }) {
   const ads = useAds();
-  const pathname = usePathname() || "/";
+  // Ads target paths without the language prefix ("/fr/blog" matches "/blog").
+  const pathname = splitLocale(usePathname() || "/").path;
+  const t = pick(commonMessages, useLocale()).common;
 
   const candidate = ads.enabled
     ? ads.ads.find((a) => a.placement === placement && adMatchesPath(a.scope, a.pathPrefix, pathname))
@@ -88,8 +93,8 @@ export default function AdSlot({
   return (
     <aside className={`mx-auto w-full ${className}`} aria-label="Advertisement">
       {label && ad.type === "adsense" && (
-        <p className="mb-1 text-center text-[10px] font-medium uppercase tracking-wider text-slate-300">
-          Advertisement
+        <p className="mb-1 text-center text-[10px] font-medium uppercase tracking-wider text-slate-300 dark:text-slate-600">
+          {t.advertisement}
         </p>
       )}
 

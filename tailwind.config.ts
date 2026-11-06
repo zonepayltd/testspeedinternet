@@ -1,6 +1,7 @@
 import type { Config } from "tailwindcss";
 
 export default {
+  darkMode: "class",
   content: [
     "./src/pages/**/*.{js,ts,jsx,tsx,mdx}",
     "./src/components/**/*.{js,ts,jsx,tsx,mdx}",
@@ -21,6 +22,12 @@ export default {
           800: "#1e40af",
           900: "#1e3a8a",
           950: "#172554",
+        },
+        ink: {
+          800: "#16213a",
+          850: "#111a2e",
+          900: "#0c1324",
+          950: "#070b16",
         },
         accent: {
           400: "#34d399",

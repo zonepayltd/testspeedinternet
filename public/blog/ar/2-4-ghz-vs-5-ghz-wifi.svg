@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" font-family="'Noto Sans Arabic', 'Segoe UI', Tahoma, Arial, sans-serif">
+  <defs>
+    <linearGradient id="bg" x1="1200" y1="0" x2="0" y2="630" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#312e81"/><stop offset=".6" stop-color="#4f46e5"/><stop offset="1" stop-color="#a78bfa" stop-opacity=".85"/>
+    </linearGradient>
+    <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse"><path d="M40 0H0V40" fill="none" stroke="#fff" stroke-opacity=".06"/></pattern>
+  </defs>
+  <rect width="1200" height="630" fill="url(#bg)"/>
+  <rect width="1200" height="630" fill="url(#grid)"/>
+  <circle cx="140" cy="90" r="220" fill="#fff" fill-opacity=".06"/>
+  <circle cx="220" cy="560" r="160" fill="#fff" fill-opacity=".05"/>
+  <rect x="846" y="70" width="282" height="44" rx="22" fill="#fff" fill-opacity=".16"/>
+  <text x="1104" y="99" text-anchor="start" direction="rtl" font-size="20" font-weight="700" letter-spacing="0" fill="#fff">الواي فاي والراوتر</text>
+  <text x="1128" y="252.6" text-anchor="start" direction="rtl" font-size="52" font-weight="800" fill="#fff">واي فاي 2.4 GHz أم 5</text><text x="1128" y="315" text-anchor="start" direction="rtl" font-size="52" font-weight="800" fill="#fff">GHz: أي نطاق يجب أن</text><text x="1128" y="377.4" text-anchor="start" direction="rtl" font-size="52" font-weight="800" fill="#fff">تستخدم؟</text>
+  <text x="1128" y="560" text-anchor="end" font-size="24" font-weight="600" fill="#fff" fill-opacity=".75">testspeedinternet.com</text>
+  <g transform="translate(50 135)">
+    <path d="M60 150 Q180 40 300 150" fill="none" stroke="#fff" stroke-opacity=".35" stroke-width="20" stroke-linecap="round"/>
+    <path d="M100 195 Q180 120 260 195" fill="none" stroke="#fff" stroke-opacity=".6" stroke-width="20" stroke-linecap="round"/>
+    <path d="M140 240 Q180 205 220 240" fill="none" stroke="#a78bfa" stroke-width="20" stroke-linecap="round"/>
+    <rect x="70" y="270" width="220" height="60" rx="18" fill="#fff" fill-opacity=".18"/>
+    <circle cx="110" cy="300" r="8" fill="#a78bfa"/><circle cx="140" cy="300" r="8" fill="#fff"/><circle cx="170" cy="300" r="8" fill="#fff" fill-opacity=".5"/></g>
+</svg>

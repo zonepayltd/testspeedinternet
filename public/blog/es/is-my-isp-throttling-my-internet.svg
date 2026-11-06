@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1200" y2="630" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#7c2d12"/><stop offset=".6" stop-color="#ea580c"/><stop offset="1" stop-color="#fcd34d" stop-opacity=".85"/>
+    </linearGradient>
+    <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse"><path d="M40 0H0V40" fill="none" stroke="#fff" stroke-opacity=".06"/></pattern>
+  </defs>
+  <rect width="1200" height="630" fill="url(#bg)"/>
+  <rect width="1200" height="630" fill="url(#grid)"/>
+  <circle cx="1060" cy="90" r="220" fill="#fff" fill-opacity=".06"/>
+  <circle cx="980" cy="560" r="160" fill="#fff" fill-opacity=".05"/>
+  <rect x="72" y="70" width="342" height="44" rx="22" fill="#fff" fill-opacity=".16"/>
+  <text x="96" y="99" font-size="20" font-weight="700" letter-spacing="2" fill="#fff">SOLUCIÓN DE PROBLEMAS</text>
+  <text x="72" y="232.2" font-size="46" font-weight="800" fill="#fff">¿Mi proveedor está</text><text x="72" y="287.4" font-size="46" font-weight="800" fill="#fff">limitando mi</text><text x="72" y="342.59999999999997" font-size="46" font-weight="800" fill="#fff">internet? Cómo</text><text x="72" y="397.79999999999995" font-size="46" font-weight="800" fill="#fff">saberlo y qué hacer</text>
+  <text x="72" y="560" font-size="24" font-weight="600" fill="#fff" fill-opacity=".75">testspeedinternet.com</text>
+  <g transform="translate(790 135)">
+    <rect x="50" y="50" width="220" height="280" rx="24" fill="#fff" fill-opacity=".16"/>
+    <path d="M85 120 l18 18 34-38" fill="none" stroke="#fcd34d" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
+    <rect x="160" y="112" width="80" height="14" rx="7" fill="#fff" fill-opacity=".7"/>
+    <path d="M85 190 l18 18 34-38" fill="none" stroke="#fcd34d" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
+    <rect x="160" y="182" width="80" height="14" rx="7" fill="#fff" fill-opacity=".7"/>
+    <circle cx="105" cy="265" r="18" fill="none" stroke="#fff" stroke-opacity=".5" stroke-width="8"/>
+    <rect x="160" y="252" width="80" height="14" rx="7" fill="#fff" fill-opacity=".35"/>
+    <circle cx="300" cy="290" r="44" fill="#fcd34d"/><path d="M285 290 h30 M300 275 v30" stroke="#fff" stroke-width="10" stroke-linecap="round"/></g>
+</svg>

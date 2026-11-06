@@ -2,60 +2,213 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  --background: #ffffff;
-  --foreground: #0f172a;
-}
+/* ==========================================================================
+   Design system — TestSpeedInternet
+   Light is the default; `html.dark` switches to the dark palette.
+   Use these classes for shared building blocks so every page looks the same.
+   ========================================================================== */
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0b1120;
-    --foreground: #e2e8f0;
+@layer base {
+  html {
+    scroll-behavior: smooth;
+    -webkit-tap-highlight-color: transparent;
+  }
+  body {
+    @apply bg-white text-slate-900 antialiased dark:bg-ink-950 dark:text-slate-100;
+    font-feature-settings: "cv11", "ss01";
+    text-rendering: optimizeLegibility;
+  }
+  html[lang="ar"] body {
+    font-family: var(--font-arabic), var(--font-inter), system-ui, sans-serif;
+    font-feature-settings: normal;
+  }
+  ::selection {
+    @apply bg-brand-500/20 text-slate-900 dark:bg-brand-400/30 dark:text-white;
+  }
+  :focus-visible {
+    outline: 2px solid theme("colors.brand.500");
+    outline-offset: 2px;
+    border-radius: 6px;
+  }
+  /* Numbers that update live shouldn't jump around */
+  .tabular {
+    font-variant-numeric: tabular-nums;
   }
 }
 
-html {
-  scroll-behavior: smooth;
+@layer components {
+  /* ---- Layout ---- */
+  .section {
+    @apply py-16 md:py-24;
+  }
+  .section-alt {
+    @apply border-y border-slate-200/70 bg-slate-50/70 py-16 dark:border-white/5 dark:bg-ink-900/40 md:py-24;
+  }
+  .section-head {
+    @apply mx-auto max-w-2xl text-center;
+  }
+
+  /* ---- Typography ---- */
+  .eyebrow {
+    @apply inline-flex items-center gap-2 rounded-full border border-brand-200/80 bg-white/80 px-3.5 py-1.5 text-xs font-semibold uppercase tracking-wider text-brand-700 shadow-sm backdrop-blur dark:border-brand-400/20 dark:bg-brand-400/10 dark:text-brand-300;
+  }
+  html[lang="ar"] .eyebrow,
+  html[lang="ar"] .kicker {
+    @apply normal-case tracking-normal;
+  }
+  .kicker {
+    @apply text-xs font-semibold uppercase tracking-wider text-brand-600 dark:text-brand-400;
+  }
+  .h-display {
+    @apply text-4xl font-extrabold leading-[1.08] tracking-tight text-slate-900 dark:text-white sm:text-5xl lg:text-6xl;
+  }
+  .h-section {
+    @apply text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white sm:text-4xl;
+  }
+  .h-card {
+    @apply text-lg font-bold text-slate-900 dark:text-white;
+  }
+  .lead {
+    @apply text-base leading-relaxed text-slate-600 dark:text-slate-400 sm:text-lg;
+  }
+  .muted {
+    @apply text-slate-500 dark:text-slate-400;
+  }
+  .text-gradient {
+    @apply bg-gradient-to-r from-brand-600 via-brand-500 to-cyan-500 bg-clip-text text-transparent dark:from-brand-400 dark:via-sky-400 dark:to-cyan-300;
+  }
+  .link {
+    @apply font-semibold text-brand-600 underline-offset-4 hover:text-brand-700 hover:underline dark:text-brand-400 dark:hover:text-brand-300;
+  }
+
+  /* ---- Surfaces ---- */
+  .card {
+    @apply rounded-2xl border border-slate-200/80 bg-white shadow-sm shadow-slate-900/[0.03] dark:border-white/[0.08] dark:bg-ink-900 dark:shadow-none;
+  }
+  .card-hover {
+    @apply transition-all duration-300 hover:-translate-y-0.5 hover:border-brand-200 hover:shadow-lg hover:shadow-brand-600/[0.06] dark:hover:border-brand-400/30 dark:hover:bg-ink-850;
+  }
+  .card-muted {
+    @apply rounded-2xl border border-slate-200/70 bg-slate-50 dark:border-white/[0.06] dark:bg-white/[0.03];
+  }
+  .icon-tile {
+    @apply flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-600 ring-1 ring-inset ring-brand-100 dark:bg-brand-400/10 dark:text-brand-300 dark:ring-brand-400/20;
+  }
+  .icon-tile-solid {
+    @apply flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-brand-500 to-brand-700 text-white shadow-lg shadow-brand-600/25;
+  }
+  .divider {
+    @apply border-slate-200/80 dark:border-white/[0.08];
+  }
+  /* Soft brand glow used behind page heroes */
+  .hero-bg {
+    @apply relative overflow-hidden bg-gradient-to-b from-brand-50/80 via-white to-white dark:from-ink-900 dark:via-ink-950 dark:to-ink-950;
+  }
+  .hero-glow {
+    @apply pointer-events-none absolute inset-x-0 top-0 -z-10 h-[480px] bg-[radial-gradient(60%_60%_at_50%_0%,rgba(37,99,235,0.14),transparent)] dark:bg-[radial-gradient(60%_60%_at_50%_0%,rgba(59,130,246,0.22),transparent)];
+  }
+  .hero-grid {
+    @apply pointer-events-none absolute inset-0 -z-10 bg-[linear-gradient(to_right,rgba(15,23,42,0.045)_1px,transparent_1px),linear-gradient(to_bottom,rgba(15,23,42,0.045)_1px,transparent_1px)] bg-[size:44px_44px] [mask-image:radial-gradient(60%_50%_at_50%_0%,black,transparent)] dark:bg-[linear-gradient(to_right,rgba(255,255,255,0.05)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.05)_1px,transparent_1px)];
+  }
+
+  /* ---- Buttons ---- */
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-5 py-3 text-sm font-semibold transition-all duration-200 disabled:cursor-not-allowed disabled:opacity-60;
+  }
+  .btn-primary {
+    @apply btn bg-brand-600 text-white shadow-sm shadow-brand-600/30 hover:bg-brand-700 active:scale-[0.98] dark:bg-brand-500 dark:hover:bg-brand-400;
+  }
+  .btn-secondary {
+    @apply btn border border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50 dark:border-white/10 dark:bg-white/5 dark:text-slate-200 dark:hover:bg-white/10;
+  }
+  .btn-ghost {
+    @apply btn text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-white/10 dark:hover:text-white;
+  }
+  .btn-white {
+    @apply btn bg-white text-brand-700 shadow-lg hover:scale-[1.03];
+  }
+  .icon-btn {
+    @apply inline-flex h-10 w-10 items-center justify-center rounded-xl text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-white/10 dark:hover:text-white;
+  }
+
+  /* ---- Menus / popovers ---- */
+  .menu-pop {
+    @apply absolute top-full z-50 mt-2 overflow-hidden rounded-xl border border-slate-200 bg-white p-1.5 shadow-xl shadow-slate-900/10 animate-scale-in dark:border-white/10 dark:bg-ink-900 dark:shadow-black/40;
+  }
+  .menu-item {
+    @apply flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-white/10;
+  }
+
+  /* ---- Forms ---- */
+  .input {
+    @apply w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 placeholder:text-slate-400 transition focus:border-brand-500 focus:outline-none focus:ring-4 focus:ring-brand-500/15 dark:border-white/10 dark:bg-ink-900 dark:text-white dark:placeholder:text-slate-500 dark:focus:border-brand-400;
+  }
+  .label {
+    @apply mb-1.5 block text-sm font-semibold text-slate-700 dark:text-slate-300;
+  }
+
+  /* ---- Pills / badges ---- */
+  .pill {
+    @apply inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-medium text-slate-600 dark:border-white/10 dark:bg-white/5 dark:text-slate-300;
+  }
+  .pill-active {
+    @apply border-brand-600 bg-brand-600 text-white dark:border-brand-500 dark:bg-brand-500;
+  }
+
+  /* ---- Tables ---- */
+  .table-pro {
+    @apply w-full text-start text-sm;
+  }
+  .table-pro thead {
+    @apply bg-slate-50 text-slate-500 dark:bg-white/[0.04] dark:text-slate-400;
+  }
+  .table-pro th {
+    @apply px-5 py-3 text-start font-semibold;
+  }
+  .table-pro td {
+    @apply border-t border-slate-100 px-5 py-3 text-slate-700 dark:border-white/[0.06] dark:text-slate-300;
+  }
+
+  /* ---- FAQ accordions (<details>) ---- */
+  .faq-item {
+    @apply card p-5 transition-colors open:border-brand-200 dark:open:border-brand-400/30 [&_summary::-webkit-details-marker]:hidden;
+  }
+  .faq-q {
+    @apply flex cursor-pointer list-none items-center justify-between gap-4 text-base font-semibold text-slate-900 dark:text-white;
+  }
+  .faq-a {
+    @apply mt-3 text-sm leading-relaxed text-slate-600 dark:text-slate-400;
+  }
 }
 
-body {
-  color: var(--foreground);
-  background: var(--background);
-  -webkit-font-smoothing: antialiased;
-  text-rendering: optimizeLegibility;
-}
-
-/* Accessible focus ring for keyboard users */
-:focus-visible {
-  outline: 2px solid theme("colors.brand.500");
-  outline-offset: 2px;
-  border-radius: 4px;
-}
-
-/* Blog article body (rendered Markdown) */
+/* ---------------- Blog article body (rendered Markdown) ---------------- */
 .post-body {
-  color: #334155;
-  line-height: 1.75;
+  @apply text-slate-700 dark:text-slate-300;
+  font-size: 1.0625rem;
+  line-height: 1.78;
 }
 .post-body h2 {
-  font-size: 1.5rem;
+  @apply text-slate-900 dark:text-white;
+  font-size: 1.55rem;
   font-weight: 800;
-  color: #0f172a;
-  margin: 2rem 0 0.75rem;
+  margin: 2.5rem 0 0.85rem;
+  letter-spacing: -0.01em;
+  scroll-margin-top: 6rem;
 }
 .post-body h3 {
+  @apply text-slate-900 dark:text-white;
   font-size: 1.2rem;
   font-weight: 700;
-  color: #0f172a;
-  margin: 1.5rem 0 0.5rem;
+  margin: 1.75rem 0 0.5rem;
+  scroll-margin-top: 6rem;
 }
 .post-body p {
-  margin: 0.85rem 0;
+  margin: 0.9rem 0;
 }
 .post-body ul,
 .post-body ol {
-  margin: 0.85rem 0;
-  padding-left: 1.5rem;
+  margin: 0.9rem 0;
+  padding-inline-start: 1.5rem;
 }
 .post-body ul {
   list-style: disc;
@@ -64,32 +217,39 @@ body {
   list-style: decimal;
 }
 .post-body li {
-  margin: 0.35rem 0;
+  margin: 0.4rem 0;
+}
+.post-body li::marker {
+  @apply text-brand-500 dark:text-brand-400;
+}
+.post-body strong {
+  @apply text-slate-900 dark:text-white;
+  font-weight: 700;
 }
 .post-body a {
-  color: #2563eb;
-  text-decoration: underline;
+  @apply font-semibold text-brand-600 decoration-brand-300 underline-offset-[3px] hover:text-brand-700 hover:decoration-current dark:text-brand-400 dark:decoration-brand-400/40 dark:hover:text-brand-300;
+  text-decoration-line: underline;
 }
 .post-body blockquote {
-  border-left: 4px solid #bfdbfe;
-  padding-left: 1rem;
-  color: #475569;
+  @apply border-brand-200 text-slate-600 dark:border-brand-400/40 dark:text-slate-400;
+  border-inline-start-width: 4px;
+  padding-inline-start: 1rem;
   font-style: italic;
-  margin: 1rem 0;
+  margin: 1.25rem 0;
 }
 .post-body code {
-  background: #f1f5f9;
+  @apply bg-slate-100 text-slate-800 dark:bg-white/10 dark:text-slate-200;
   padding: 0.15em 0.4em;
-  border-radius: 4px;
-  font-size: 0.9em;
+  border-radius: 6px;
+  font-size: 0.88em;
 }
 .post-body pre {
-  background: #0f172a;
-  color: #e2e8f0;
+  @apply bg-ink-950 text-slate-200 dark:bg-black/40;
   padding: 1rem;
   border-radius: 12px;
   overflow: auto;
-  margin: 1rem 0;
+  margin: 1.25rem 0;
+  direction: ltr;
 }
 .post-body pre code {
   background: transparent;
@@ -100,35 +260,14 @@ body {
   margin: 1rem 0;
   max-width: 100%;
 }
-.post-body {
-  font-size: 1.0625rem;
-}
-.post-body h2,
-.post-body h3 {
-  scroll-margin-top: 6rem;
-  letter-spacing: -0.01em;
-}
-.post-body h2 {
-  margin-top: 2.5rem;
-  padding-top: 0.25rem;
-}
-.post-body strong {
-  color: #0f172a;
-  font-weight: 700;
-}
-.post-body a {
-  font-weight: 600;
-  text-decoration-color: #93c5fd;
-  text-underline-offset: 3px;
-}
-.post-body a:hover {
-  color: #1d4ed8;
-  text-decoration-color: currentColor;
+.post-body hr {
+  @apply border-slate-200 dark:border-white/10;
+  margin: 2rem 0;
 }
 .post-body .table-wrap {
+  @apply border border-slate-200 dark:border-white/10;
   margin: 1.5rem 0;
   overflow-x: auto;
-  border: 1px solid #e2e8f0;
   border-radius: 14px;
 }
 .post-body table {
@@ -137,31 +276,22 @@ body {
   font-size: 0.95rem;
 }
 .post-body th {
-  background: #f8fafc;
-  color: #0f172a;
+  @apply bg-slate-50 text-slate-900 dark:bg-white/[0.04] dark:text-white;
   font-weight: 700;
-  text-align: left;
+  text-align: start;
   padding: 0.75rem 1rem;
-  border-bottom: 1px solid #e2e8f0;
   white-space: nowrap;
 }
 .post-body td {
+  @apply border-t border-slate-100 dark:border-white/[0.06];
   padding: 0.7rem 1rem;
-  border-top: 1px solid #f1f5f9;
   vertical-align: top;
-}
-.post-body tr:nth-child(even) td {
-  background: #fcfdff;
-}
-.post-body hr {
-  margin: 2rem 0;
-  border-color: #e2e8f0;
 }
 .post-body > :first-child {
   margin-top: 0;
 }
 
-/* International phone input (react-phone-number-input) */
+/* ---------------- International phone input ---------------- */
 .tsi-phone .PhoneInputCountryIcon {
   width: 1.5em;
   height: 1.05em;
@@ -172,11 +302,28 @@ body {
 .tsi-phone .PhoneInputCountrySelectArrow {
   color: #94a3b8;
   opacity: 1;
-  margin-left: 0.3em;
+  margin-inline-start: 0.3em;
 }
 .tsi-phone .PhoneInputCountry {
-  margin-right: 0.25rem;
+  margin-inline-end: 0.25rem;
+}
+.tsi-phone .PhoneInputInput {
+  background: transparent;
 }
 .tsi-phone .PhoneInputInput:focus-visible {
   outline: none;
+}
+.dark .tsi-phone .PhoneInputCountrySelect {
+  background: #0f172a;
+  color: #e2e8f0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

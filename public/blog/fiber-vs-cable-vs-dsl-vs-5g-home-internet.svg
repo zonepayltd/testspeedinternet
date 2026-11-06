@@ -11,7 +11,7 @@
   <circle cx="980" cy="560" r="160" fill="#fff" fill-opacity=".05"/>
   <rect x="72" y="70" width="272" height="44" rx="22" fill="#fff" fill-opacity=".16"/>
   <text x="96" y="99" font-size="20" font-weight="700" letter-spacing="2" fill="#fff">CONNECTION TYPES</text>
-  <text x="72" y="255.2" font-size="52" font-weight="800" fill="#fff">Fiber vs Cable vs DSL</text><text x="72" y="315" font-size="52" font-weight="800" fill="#fff">vs 5G Home Internet</text><text x="72" y="374.79999999999995" font-size="52" font-weight="800" fill="#fff">Compared</text>
+  <text x="72" y="252.6" font-size="52" font-weight="800" fill="#fff">Fiber vs Cable vs DSL</text><text x="72" y="315" font-size="52" font-weight="800" fill="#fff">vs 5G Home Internet</text><text x="72" y="377.4" font-size="52" font-weight="800" fill="#fff">Compared</text>
   <text x="72" y="560" font-size="24" font-weight="600" fill="#fff" fill-opacity=".75">testspeedinternet.com</text>
   <g transform="translate(790 135)">
     <path d="M20 90 C140 90 160 180 340 180" fill="none" stroke="#5eead4" stroke-width="14" stroke-linecap="round"/>

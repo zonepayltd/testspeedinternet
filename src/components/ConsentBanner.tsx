@@ -3,11 +3,16 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Cookie } from "lucide-react";
+import { useLocale } from "@/i18n/client";
+import { lp, pick } from "@/i18n/config";
+import { commonMessages } from "@/i18n/messages/common";
 
 const KEY = "tsi_consent";
 
 export default function ConsentBanner() {
   const [show, setShow] = useState(false);
+  const locale = useLocale();
+  const t = pick(commonMessages, locale).consent;
 
   useEffect(() => {
     try {
@@ -39,33 +44,24 @@ export default function ConsentBanner() {
   if (!show) return null;
 
   return (
-    <div className="fixed inset-x-0 bottom-0 z-[90] px-3 pb-3 sm:px-4 sm:pb-4">
-      <div className="animate-fade-in-up mx-auto flex max-w-4xl flex-col gap-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-2xl shadow-slate-900/10 sm:flex-row sm:items-center sm:p-5">
-        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-600">
+    <div aria-live="polite" className="fixed inset-x-0 bottom-0 z-[90] px-3 pb-3 sm:px-4 sm:pb-4">
+      <div className="animate-fade-in-up mx-auto flex max-w-4xl flex-col gap-4 rounded-2xl border border-slate-200 bg-white/95 p-4 shadow-2xl shadow-slate-900/10 backdrop-blur dark:border-white/10 dark:bg-ink-900/95 dark:shadow-black/50 sm:flex-row sm:items-center sm:p-5">
+        <span className="icon-tile hidden h-10 w-10 sm:flex">
           <Cookie className="h-5 w-5" aria-hidden="true" />
         </span>
-        <p className="flex-1 text-sm leading-relaxed text-slate-600">
-          We use cookies for essential features, analytics and to show ads (Google AdSense).
-          You can accept all, or decline non-essential ones. See our{" "}
-          <Link href="/privacy" className="font-semibold text-brand-600 hover:text-brand-700">
-            Privacy Policy
+        <p className="flex-1 text-sm leading-relaxed text-slate-600 dark:text-slate-300">
+          {t.text}{" "}
+          <Link href={lp(locale, "/privacy")} className="link">
+            {t.privacy}
           </Link>
           .
         </p>
         <div className="flex shrink-0 gap-2">
-          <button
-            type="button"
-            onClick={() => decide("rejected")}
-            className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-600 transition-colors hover:bg-slate-50"
-          >
-            Decline
+          <button type="button" onClick={() => decide("rejected")} className="btn-secondary flex-1 px-4 py-2.5 sm:flex-none">
+            {t.decline}
           </button>
-          <button
-            type="button"
-            onClick={() => decide("accepted")}
-            className="rounded-xl bg-brand-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-brand-700"
-          >
-            Accept all
+          <button type="button" onClick={() => decide("accepted")} className="btn-primary flex-1 px-5 py-2.5 sm:flex-none">
+            {t.accept}
           </button>
         </div>
       </div>

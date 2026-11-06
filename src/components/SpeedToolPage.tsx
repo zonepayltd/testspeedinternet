@@ -1,117 +1,100 @@
 import Link from "next/link";
-import { Zap, ShieldCheck, ChevronRight, Gauge, type LucideIcon } from "lucide-react";
+import {
+  Activity,
+  ArrowDownUp,
+  ArrowRight,
+  BookOpen,
+  Cable,
+  CircleCheck,
+  Download,
+  Gauge,
+  Lightbulb,
+  Router,
+  Server,
+  Signal,
+  Upload,
+  Wifi,
+  Zap,
+  type LucideIcon,
+} from "lucide-react";
 import SpeedTest from "@/components/SpeedTest";
+import PageHero from "@/components/marketing/PageHero";
+import SectionHead from "@/components/marketing/SectionHead";
+import FaqList from "@/components/marketing/FaqList";
+import ToolGrid from "@/components/marketing/ToolGrid";
+import JsonLd, { faqJsonLd } from "@/components/marketing/JsonLd";
+import { LOCALE_META, lp, pick, type Locale } from "@/i18n/config";
+import { toolsMessages } from "@/i18n/messages/tools";
+import { COMPANY } from "@/lib/company";
 
-export type FAQ = { q: string; a: string };
-export type Section = { icon: LucideIcon; title: string; text: string };
+export type ToolSlug = "download" | "upload" | "ping" | "wifi";
 
-type Props = {
-  badge: string;
-  titleLead: string;
-  titleHighlight: string;
-  intro: string;
-  mode?: "full" | "download" | "upload" | "ping";
-  highlights?: string[];
-  sectionsHeading: string;
-  sections: Section[];
-  faqHeading: string;
-  faqs: FAQ[];
+export const TOOL_CONFIG: Record<
+  ToolSlug,
+  { path: string; mode: "full" | "download" | "upload" | "ping"; heroIcon: LucideIcon; icons: LucideIcon[] }
+> = {
+  download: { path: "/tools/download-speed-test", mode: "download", heroIcon: Download, icons: [Download, Gauge, Server, Lightbulb] },
+  upload: { path: "/tools/upload-speed-test", mode: "upload", heroIcon: Upload, icons: [Upload, Gauge, Server, ArrowDownUp] },
+  ping: { path: "/tools/ping-test", mode: "ping", heroIcon: Activity, icons: [Zap, Activity, Gauge, Cable] },
+  wifi: { path: "/tools/wifi-speed-test", mode: "full", heroIcon: Wifi, icons: [Wifi, Signal, Cable, Router] },
 };
 
-export default function SpeedToolPage({
-  badge,
-  titleLead,
-  titleHighlight,
-  intro,
-  mode = "full",
-  highlights = ["Accurate real-time results", "No app needed", "Works on every device"],
-  sectionsHeading,
-  sections,
-  faqHeading,
-  faqs,
-}: Props) {
-  const faqJsonLd = {
+/** Shared layout for the focused speed tools (download / upload / ping / WiFi). */
+export default function SpeedToolPage({ locale, tool }: { locale: Locale; tool: ToolSlug }) {
+  const t = pick(toolsMessages, locale);
+  const p = t.pages[tool];
+  const cfg = TOOL_CONFIG[tool];
+  const inLanguage = LOCALE_META[locale].htmlLang;
+
+  const appJsonLd = {
     "@context": "https://schema.org",
-    "@type": "FAQPage",
-    mainEntity: faqs.map((f) => ({
-      "@type": "Question",
-      name: f.q,
-      acceptedAnswer: { "@type": "Answer", text: f.a },
-    })),
+    "@type": "WebApplication",
+    name: p.meta.title,
+    url: `${COMPANY.siteUrl}${lp(locale, cfg.path)}`,
+    applicationCategory: "UtilitiesApplication",
+    operatingSystem: "Any",
+    browserRequirements: "Requires JavaScript",
+    inLanguage,
+    description: p.meta.description,
+    isAccessibleForFree: true,
+    offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
+    publisher: { "@type": "Organization", name: COMPANY.brand, url: COMPANY.siteUrl },
   };
 
   return (
     <>
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
-      />
+      <JsonLd data={faqJsonLd(p.faqs, inLanguage)} />
+      <JsonLd data={appJsonLd} />
 
       {/* Hero + test */}
-      <section className="relative overflow-hidden bg-gradient-to-b from-brand-50/80 via-white to-white">
-        <div aria-hidden="true" className="pointer-events-none absolute inset-0 -z-10">
-          <div className="absolute inset-x-0 top-0 h-[440px] bg-[radial-gradient(70%_60%_at_50%_0%,rgba(37,99,235,0.12),transparent)]" />
-          <div className="absolute -left-24 top-24 h-72 w-72 rounded-full bg-cyan-300/20 blur-3xl" />
-          <div className="absolute -right-24 top-40 h-72 w-72 rounded-full bg-brand-300/20 blur-3xl" />
+      <PageHero eyebrow={p.badge} icon={cfg.heroIcon} titleLead={p.titleLead} titleHighlight={p.titleHighlight} intro={p.intro}>
+        <div id="speed-test" className="mt-10 w-full max-w-5xl scroll-mt-24">
+          <SpeedTest mode={cfg.mode} />
         </div>
+        <ul className="mt-8 flex flex-wrap justify-center gap-x-6 gap-y-2 text-sm text-slate-600 dark:text-slate-400">
+          {t.ui.highlights.map((item) => (
+            <li key={item} className="flex items-center gap-2">
+              <CircleCheck className="h-4 w-4 text-accent-500" aria-hidden="true" />
+              {item}
+            </li>
+          ))}
+        </ul>
+      </PageHero>
 
-        <div className="container relative flex flex-col items-center py-14 text-center md:py-20">
-          <span className="inline-flex items-center gap-2 rounded-full border border-brand-200 bg-white/80 px-3.5 py-1.5 text-xs font-semibold uppercase tracking-wider text-brand-600 shadow-sm backdrop-blur">
-            <Zap className="h-3.5 w-3.5" aria-hidden="true" />
-            {badge}
-          </span>
-
-          <h1 className="mt-5 max-w-3xl text-4xl font-extrabold leading-[1.1] tracking-tight text-slate-900 sm:text-5xl">
-            {titleLead}{" "}
-            <span className="bg-gradient-to-r from-brand-600 to-cyan-500 bg-clip-text text-transparent">
-              {titleHighlight}
-            </span>
-          </h1>
-
-          <p className="mt-4 max-w-2xl text-base leading-relaxed text-slate-500 sm:text-lg">
-            {intro}
-          </p>
-
-          <div id="speed-test" className="mt-10 w-full scroll-mt-24">
-            <SpeedTest mode={mode} />
-          </div>
-
-          <ul className="mt-8 flex flex-wrap justify-center gap-x-6 gap-y-2 text-sm text-slate-500">
-            {highlights.map((item) => (
-              <li key={item} className="flex items-center gap-2">
-                <ShieldCheck className="h-4 w-4 text-accent-500" aria-hidden="true" />
-                {item}
-              </li>
-            ))}
-          </ul>
-        </div>
-      </section>
-
-      {/* About / content */}
-      <section className="border-t border-slate-100 py-16 md:py-24">
+      {/* Key concepts */}
+      <section className="section">
         <div className="container">
-          <div className="mx-auto max-w-2xl text-center">
-            <h2 className="text-3xl font-extrabold tracking-tight text-slate-900 sm:text-4xl">
-              {sectionsHeading}
-            </h2>
-          </div>
-          <div className="mx-auto mt-12 grid max-w-4xl gap-5 sm:grid-cols-2">
-            {sections.map((s) => {
-              const Icon = s.icon;
+          <SectionHead kicker={t.ui.learnKicker} title={p.sectionsHeading} intro={p.sectionsIntro} />
+          <div className="mx-auto mt-12 grid max-w-5xl gap-5 sm:grid-cols-2">
+            {p.sections.map((s, i) => {
+              const Icon = cfg.icons[i] ?? Gauge;
               return (
-                <div
-                  key={s.title}
-                  className="group relative overflow-hidden rounded-3xl border border-slate-200 bg-white p-6 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-brand-200 hover:shadow-xl hover:shadow-brand-600/5"
-                >
-                  <div
-                    aria-hidden="true"
-                    className="pointer-events-none absolute -right-10 -top-10 h-28 w-28 rounded-full bg-brand-100/60 opacity-0 blur-2xl transition-opacity duration-300 group-hover:opacity-100"
-                  />
-                  <span className="relative flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-brand-500 to-brand-700 text-white shadow-lg shadow-brand-600/25 transition-transform duration-300 group-hover:scale-110 group-hover:-rotate-3">
-                    <Icon className="h-6 w-6" aria-hidden="true" />
+                <div key={s.title} className="card p-6 sm:p-7">
+                  <span className="icon-tile">
+                    <Icon className="h-5 w-5" aria-hidden="true" />
                   </span>
-                  <h3 className="relative mt-4 text-lg font-bold text-slate-900">{s.title}</h3>
-                  <p className="relative mt-2 text-sm leading-relaxed text-slate-500">{s.text}</p>
+                  <h3 className="h-card mt-5">{s.title}</h3>
+                  <p className="mt-2 text-sm leading-relaxed text-slate-600 dark:text-slate-400">{s.text}</p>
                 </div>
               );
             })}
@@ -119,36 +102,89 @@ export default function SpeedToolPage({
         </div>
       </section>
 
-      {/* FAQ */}
-      <section className="border-t border-slate-100 bg-slate-50 py-16 md:py-24">
-        <div className="container max-w-3xl">
-          <h2 className="text-center text-3xl font-extrabold tracking-tight text-slate-900 sm:text-4xl">
-            {faqHeading}
-          </h2>
-          <div className="mt-10 space-y-3">
-            {faqs.map((faq) => (
-              <details
-                key={faq.q}
-                className="group rounded-xl border border-slate-200 bg-white p-5 [&_summary::-webkit-details-marker]:hidden"
-              >
-                <summary className="flex cursor-pointer items-center justify-between gap-4 text-base font-semibold text-slate-900">
-                  {faq.q}
-                  <ChevronRight className="h-5 w-5 shrink-0 text-slate-400 transition-transform group-open:rotate-90" aria-hidden="true" />
-                </summary>
-                <p className="mt-3 text-sm leading-relaxed text-slate-500">{faq.a}</p>
-              </details>
-            ))}
-          </div>
-
-          <div className="mt-10 text-center">
-            <Link
-              href="/"
-              className="inline-flex items-center gap-2 text-sm font-semibold text-brand-600 hover:text-brand-700"
-            >
-              <Gauge className="h-4 w-4" aria-hidden="true" />
-              Run the full internet speed test
-              <ChevronRight className="h-4 w-4" aria-hidden="true" />
+      {/* In-depth guide + reference table */}
+      <section className="section-alt">
+        <div className="container grid max-w-6xl items-start gap-12 lg:grid-cols-[1.1fr_1fr]">
+          <div>
+            <h2 className="h-section">{p.guide.title}</h2>
+            <div className="mt-6 space-y-4 text-base leading-relaxed text-slate-600 dark:text-slate-300">
+              {p.guide.paragraphs.map((para) => (
+                <p key={para.slice(0, 40)}>{para}</p>
+              ))}
+            </div>
+            <Link href={lp(locale, "/guides/good-internet-speed")} className="link mt-6 inline-flex items-center gap-1.5 text-sm">
+              <BookOpen className="h-4 w-4" aria-hidden="true" />
+              {t.ui.guideLink}
+              <ArrowRight className="h-4 w-4 rtl:rotate-180" aria-hidden="true" />
             </Link>
+          </div>
+          <div className="card overflow-hidden">
+            <div className="border-b border-slate-200/80 px-5 py-4 dark:border-white/[0.08]">
+              <h3 className="h-card">{p.table.title}</h3>
+              <p className="mt-1 text-sm leading-relaxed text-slate-500 dark:text-slate-400">{p.table.intro}</p>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="table-pro">
+                <thead>
+                  <tr>
+                    <th scope="col">{p.table.head[0]}</th>
+                    <th scope="col">{p.table.head[1]}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {p.table.rows.map(([a, b]) => (
+                    <tr key={a}>
+                      <td className={a.length < 14 ? "whitespace-nowrap" : undefined}><bdi>{a}</bdi></td>
+                      <td className="font-semibold !text-slate-900 dark:!text-white">
+                        <bdi className="tabular">{b}</bdi>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Tips */}
+      <section className="section">
+        <div className="container max-w-4xl">
+          <SectionHead kicker={t.ui.tipsKicker} title={p.tips.title} />
+          <ol className="mt-10 grid gap-3 sm:grid-cols-2">
+            {p.tips.items.map((tip, i) => (
+              <li key={tip} className="card flex items-start gap-3.5 p-4">
+                <span className="tabular flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-brand-600 text-xs font-bold text-white dark:bg-brand-500">
+                  {i + 1}
+                </span>
+                <span className="pt-0.5 text-sm leading-relaxed text-slate-700 dark:text-slate-300">{tip}</span>
+              </li>
+            ))}
+          </ol>
+        </div>
+      </section>
+
+      {/* FAQ */}
+      <section className="section-alt">
+        <div className="container max-w-3xl">
+          <SectionHead kicker={t.ui.faqKicker} title={p.faqHeading} />
+          <FaqList items={p.faqs} className="mt-10" />
+          <div className="mt-10 flex justify-center">
+            <Link href={lp(locale, "/")} className="btn-secondary">
+              <Gauge className="h-4 w-4" aria-hidden="true" />
+              {t.ui.fullTest}
+              <ArrowRight className="h-4 w-4 rtl:rotate-180" aria-hidden="true" />
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* Other tools */}
+      <section className="section">
+        <div className="container max-w-6xl">
+          <SectionHead title={t.ui.otherTitle} intro={t.ui.otherIntro} />
+          <div className="mt-10">
+            <ToolGrid locale={locale} exclude={[tool]} />
           </div>
         </div>
       </section>

@@ -92,42 +92,66 @@ const ART = {
     <path d="M120 320 q60 -30 120 0" fill="none" stroke="${a}" stroke-width="10" stroke-linecap="round"/>`,
 };
 
-function svgFor({ title, category }) {
+// Category label shown on the cover, per language (category keys stay English in frontmatter).
+const CAT_LABELS = {
+  fr: { "Speed Testing": "Test de débit", "WiFi & Routers": "WiFi et routeurs", "Gaming & Latency": "Jeux et latence", Streaming: "Streaming", "Connection Types": "Types de connexion", Troubleshooting: "Dépannage", "Privacy & Security": "Confidentialité et sécurité", "Remote Work": "Télétravail" },
+  es: { "Speed Testing": "Test de velocidad", "WiFi & Routers": "WiFi y routers", "Gaming & Latency": "Gaming y latencia", Streaming: "Streaming", "Connection Types": "Tipos de conexión", Troubleshooting: "Solución de problemas", "Privacy & Security": "Privacidad y seguridad", "Remote Work": "Teletrabajo" },
+  ar: { "Speed Testing": "اختبار السرعة", "WiFi & Routers": "الواي فاي والراوتر", "Gaming & Latency": "الألعاب وزمن الاستجابة", Streaming: "البث", "Connection Types": "أنواع الاتصال", Troubleshooting: "حل المشكلات", "Privacy & Security": "الخصوصية والأمان", "Remote Work": "العمل عن بُعد" },
+  ru: { "Speed Testing": "Тест скорости", "WiFi & Routers": "Wi-Fi и роутеры", "Gaming & Latency": "Игры и задержка", Streaming: "Стриминг", "Connection Types": "Типы подключения", Troubleshooting: "Решение проблем", "Privacy & Security": "Приватность и безопасность", "Remote Work": "Удалённая работа" },
+};
+
+function svgFor({ title, category, locale = "en" }) {
+  const rtl = locale === "ar";
   const [c1, c2, accent] = THEMES[category] || THEMES["Speed Testing"];
   const art = (ART[category] || ART["Speed Testing"])(accent);
-  const lines = wrap(title, 21).slice(0, 4);
+  const label = (CAT_LABELS[locale] && CAT_LABELS[locale][category]) || category;
+  const lines = wrap(title, rtl ? 24 : 21).slice(0, 4);
   const fs = lines.length > 3 ? 46 : 52;
-  const startY = 315 - ((lines.length - 1) * fs * 1.15) / 2;
+  const startY = 315 - ((lines.length - 1) * fs * 1.2) / 2;
+  const x = rtl ? 1128 : 72;
+  const anchor = rtl ? ' text-anchor="start" direction="rtl"' : "";
   const text = lines
-    .map((l, i) => `<text x="72" y="${startY + i * fs * 1.15}" font-size="${fs}" font-weight="800" fill="#fff">${esc(l)}</text>`)
+    .map((l, i) => `<text x="${x}" y="${startY + i * fs * 1.2}"${anchor} font-size="${fs}" font-weight="800" fill="#fff">${esc(l)}</text>`)
     .join("");
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif">
+  const upper = locale === "ar" ? label : label.toUpperCase();
+  const pillW = Math.round(upper.length * (rtl ? 13 : 14) + 48);
+  const pillX = rtl ? 1128 - pillW : 72;
+  const family = rtl
+    ? "'Noto Sans Arabic', 'Segoe UI', Tahoma, Arial, sans-serif"
+    : "Inter, 'Segoe UI', Helvetica, Arial, sans-serif";
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" font-family="${family}">
   <defs>
-    <linearGradient id="bg" x1="0" y1="0" x2="1200" y2="630" gradientUnits="userSpaceOnUse">
+    <linearGradient id="bg" x1="${rtl ? 1200 : 0}" y1="0" x2="${rtl ? 0 : 1200}" y2="630" gradientUnits="userSpaceOnUse">
       <stop stop-color="${c1}"/><stop offset=".6" stop-color="${c2}"/><stop offset="1" stop-color="${accent}" stop-opacity=".85"/>
     </linearGradient>
     <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse"><path d="M40 0H0V40" fill="none" stroke="#fff" stroke-opacity=".06"/></pattern>
   </defs>
   <rect width="1200" height="630" fill="url(#bg)"/>
   <rect width="1200" height="630" fill="url(#grid)"/>
-  <circle cx="1060" cy="90" r="220" fill="#fff" fill-opacity=".06"/>
-  <circle cx="980" cy="560" r="160" fill="#fff" fill-opacity=".05"/>
-  <rect x="72" y="70" width="${esc(category).length * 14 + 48}" height="44" rx="22" fill="#fff" fill-opacity=".16"/>
-  <text x="96" y="99" font-size="20" font-weight="700" letter-spacing="2" fill="#fff">${esc(category.toUpperCase())}</text>
+  <circle cx="${rtl ? 140 : 1060}" cy="90" r="220" fill="#fff" fill-opacity=".06"/>
+  <circle cx="${rtl ? 220 : 980}" cy="560" r="160" fill="#fff" fill-opacity=".05"/>
+  <rect x="${pillX}" y="70" width="${pillW}" height="44" rx="22" fill="#fff" fill-opacity=".16"/>
+  <text x="${rtl ? 1128 - 24 : 96}" y="99"${anchor} font-size="20" font-weight="700" letter-spacing="${rtl ? 0 : 2}" fill="#fff">${esc(upper)}</text>
   ${text}
-  <text x="72" y="560" font-size="24" font-weight="600" fill="#fff" fill-opacity=".75">testspeedinternet.com</text>
-  <g transform="translate(790 135)">${art}</g>
+  <text x="${x}" y="560"${rtl ? ' text-anchor="end"' : ""} font-size="24" font-weight="600" fill="#fff" fill-opacity=".75">testspeedinternet.com</text>
+  <g transform="translate(${rtl ? 50 : 790} 135)">${art}</g>
 </svg>
 `;
 }
 
+// English covers -> public/blog/<slug>.svg ; other languages -> public/blog/<locale>/<slug>.svg
 let n = 0;
-for (const file of fs.readdirSync(contentDir).filter((f) => f.endsWith(".md"))) {
-  const slug = file.replace(/\.md$/, "");
-  const out = path.join(outDir, `${slug}.svg`);
-  if (fs.existsSync(out) && !force) continue;
-  const { data } = matter(fs.readFileSync(path.join(contentDir, file), "utf8"));
-  fs.writeFileSync(out, svgFor({ title: data.title || slug, category: data.category || "Speed Testing" }));
-  n++;
+for (const locale of fs.readdirSync(contentDir).filter((d) => fs.statSync(path.join(contentDir, d)).isDirectory())) {
+  const dir = path.join(contentDir, locale);
+  const target = locale === "en" ? outDir : path.join(outDir, locale);
+  fs.mkdirSync(target, { recursive: true });
+  for (const file of fs.readdirSync(dir).filter((f) => f.endsWith(".md"))) {
+    const slug = file.replace(/\.md$/, "");
+    const out = path.join(target, `${slug}.svg`);
+    if (fs.existsSync(out) && !force) continue;
+    const { data } = matter(fs.readFileSync(path.join(dir, file), "utf8"));
+    fs.writeFileSync(out, svgFor({ title: data.title || slug, category: data.category || "Speed Testing", locale }));
+    n++;
+  }
 }
 console.log(`Generated ${n} cover image(s) in public/blog`);

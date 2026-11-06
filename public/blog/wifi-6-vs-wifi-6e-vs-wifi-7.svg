@@ -9,9 +9,9 @@
   <rect width="1200" height="630" fill="url(#grid)"/>
   <circle cx="1060" cy="90" r="220" fill="#fff" fill-opacity=".06"/>
   <circle cx="980" cy="560" r="160" fill="#fff" fill-opacity=".05"/>
-  <rect x="72" y="70" width="300" height="44" rx="22" fill="#fff" fill-opacity=".16"/>
+  <rect x="72" y="70" width="244" height="44" rx="22" fill="#fff" fill-opacity=".16"/>
   <text x="96" y="99" font-size="20" font-weight="700" letter-spacing="2" fill="#fff">WIFI &amp; ROUTERS</text>
-  <text x="72" y="255.2" font-size="52" font-weight="800" fill="#fff">WiFi 6 vs WiFi 6E vs</text><text x="72" y="315" font-size="52" font-weight="800" fill="#fff">WiFi 7: What's the</text><text x="72" y="374.79999999999995" font-size="52" font-weight="800" fill="#fff">Difference?</text>
+  <text x="72" y="252.6" font-size="52" font-weight="800" fill="#fff">WiFi 6 vs WiFi 6E vs</text><text x="72" y="315" font-size="52" font-weight="800" fill="#fff">WiFi 7: What's the</text><text x="72" y="377.4" font-size="52" font-weight="800" fill="#fff">Difference?</text>
   <text x="72" y="560" font-size="24" font-weight="600" fill="#fff" fill-opacity=".75">testspeedinternet.com</text>
   <g transform="translate(790 135)">
     <path d="M60 150 Q180 40 300 150" fill="none" stroke="#fff" stroke-opacity=".35" stroke-width="20" stroke-linecap="round"/>

@@ -1,66 +1,86 @@
 import type { Metadata, Viewport } from "next";
-import { Inter } from "next/font/google";
+import { Inter, Noto_Sans_Arabic } from "next/font/google";
 import Script from "next/script";
 import SiteShell from "@/components/SiteShell";
 import { getSiteConfig } from "@/lib/siteConfig";
+import { getLocale } from "@/i18n/server";
+import { LOCALE_META, type Locale } from "@/i18n/config";
+import { themeInitScript } from "@/components/theme/ThemeToggle";
+import { COMPANY } from "@/lib/company";
 import "./globals.css";
 
 const inter = Inter({
-  subsets: ["latin"],
+  subsets: ["latin", "latin-ext", "cyrillic"],
   variable: "--font-inter",
   display: "swap",
 });
 
-const SITE_URL = "https://www.testspeedinternet.com";
+const arabic = Noto_Sans_Arabic({
+  subsets: ["arabic"],
+  weight: ["400", "500", "600", "700", "800"],
+  variable: "--font-arabic",
+  display: "swap",
+  preload: false,
+});
+
+const SITE_URL = COMPANY.siteUrl;
 
 // Render every public page on demand so config-driven head tags (Google Search
 // Console verification, Analytics, AdSense) always reflect the latest values
 // saved in the admin panel, with no rebuild required.
 export const dynamic = "force-dynamic";
 
-export async function generateMetadata(): Promise<Metadata> {
-  const cfg = await getSiteConfig();
-  return {
-    metadataBase: new URL(SITE_URL),
-    title: {
-      default: "Internet Speed Test: Free Download, Upload & Ping Test",
-      template: "%s | TestSpeedInternet",
-    },
+const SITE_META: Record<Locale, { title: string; description: string }> = {
+  en: {
+    title: "Internet Speed Test: Free Download, Upload & Ping Test",
     description:
       "Run a free internet speed test in seconds. Check your download speed, upload speed, ping and latency on any device. Accurate, no-app-needed broadband speed test.",
-    keywords: [
-      "internet speed test",
-      "test speed internet",
-      "speed test",
-      "test my internet speed",
-      "broadband speed test",
-      "download speed test",
-      "upload speed test",
-      "ping test",
-      "wifi speed test",
-    ],
+  },
+  fr: {
+    title: "Test de vitesse Internet gratuit : débit, upload et ping",
+    description:
+      "Testez gratuitement votre connexion Internet en quelques secondes : débit descendant, débit montant, ping et latence, sur tous les appareils et sans application.",
+  },
+  es: {
+    title: "Test de velocidad de internet gratis: descarga, subida y ping",
+    description:
+      "Mide gratis tu velocidad de internet en segundos: descarga, subida, ping y latencia en cualquier dispositivo. Test de velocidad preciso y sin instalar nada.",
+  },
+  ar: {
+    title: "اختبار سرعة الإنترنت مجانًا: التنزيل والرفع والـ Ping",
+    description:
+      "اختبر سرعة الإنترنت مجانًا خلال ثوانٍ: سرعة التنزيل وسرعة الرفع وزمن الاستجابة على أي جهاز، بدقة ودون الحاجة إلى تطبيق.",
+  },
+  ru: {
+    title: "Тест скорости интернета бесплатно: загрузка, отдача и пинг",
+    description:
+      "Бесплатно проверьте скорость интернета за несколько секунд: загрузка, отдача, пинг и задержка на любом устройстве. Точный тест без установки приложений.",
+  },
+};
+
+export async function generateMetadata(): Promise<Metadata> {
+  const [cfg, locale] = await Promise.all([getSiteConfig(), getLocale()]);
+  const m = SITE_META[locale];
+  return {
+    metadataBase: new URL(SITE_URL),
+    title: { default: m.title, template: "%s | TestSpeedInternet" },
+    description: m.description,
     applicationName: "TestSpeedInternet",
-    authors: [{ name: "ZONEPAY LTD" }],
-    creator: "ZONEPAY LTD",
-    publisher: "ZONEPAY LTD",
+    authors: [{ name: COMPANY.legalName }],
+    creator: COMPANY.legalName,
+    publisher: COMPANY.legalName,
     category: "technology",
     formatDetection: { telephone: false, email: false, address: false },
     alternates: { types: { "application/rss+xml": `${SITE_URL}/feed.xml` } },
     openGraph: {
       type: "website",
       url: SITE_URL,
-      siteName: "TestSpeedInternet",
-      title: "Test Speed Internet | Free Internet Speed Test",
-      description:
-        "Run a free internet speed test in seconds. Check download, upload, ping and latency on any device.",
-      locale: "en_US",
+      siteName: COMPANY.brand,
+      title: m.title,
+      description: m.description,
+      locale: LOCALE_META[locale].og,
     },
-    twitter: {
-      card: "summary_large_image",
-      title: "Test Speed Internet | Free Internet Speed Test",
-      description:
-        "Run a free internet speed test in seconds. Check download, upload, ping and latency on any device.",
-    },
+    twitter: { card: "summary_large_image", title: m.title, description: m.description },
     robots: {
       index: true,
       follow: true,
@@ -75,15 +95,17 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export const viewport: Viewport = {
-  themeColor: "#2563eb",
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
+    { media: "(prefers-color-scheme: dark)", color: "#070b16" },
+  ],
   width: "device-width",
   initialScale: 1,
 };
 
-export default async function RootLayout({
-  children,
-}: Readonly<{ children: React.ReactNode }>) {
-  const cfg = await getSiteConfig();
+export default async function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+  const [cfg, locale] = await Promise.all([getSiteConfig(), getLocale()]);
+  const meta = LOCALE_META[locale];
   const gaId = cfg.gaMeasurementId;
 
   const jsonLd = {
@@ -93,43 +115,37 @@ export default async function RootLayout({
         "@type": "Organization",
         "@id": `${SITE_URL}/#organization`,
         name: "Test Speed Internet",
-        legalName: "ZONEPAY LTD",
+        legalName: COMPANY.legalName,
         url: SITE_URL,
         logo: `${SITE_URL}/icon.svg`,
-        email: "hello@testspeedinternet.com",
+        email: COMPANY.email,
       },
       {
         "@type": "WebSite",
         "@id": `${SITE_URL}/#website`,
         url: SITE_URL,
         name: "Test Speed Internet",
-        description:
-          "Free internet speed test. Check your download speed, upload speed, ping and latency in real time on any device.",
+        description: SITE_META.en.description,
         publisher: { "@id": `${SITE_URL}/#organization` },
-        inLanguage: "en",
-      },
-      {
-        "@type": "WebApplication",
-        "@id": `${SITE_URL}/#app`,
-        name: "Test Speed Internet",
-        url: SITE_URL,
-        applicationCategory: "UtilitiesApplication",
-        operatingSystem: "Any",
-        browserRequirements: "Requires a modern web browser",
-        offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
-        publisher: { "@id": `${SITE_URL}/#organization` },
+        inLanguage: ["en", "fr", "es", "ar", "ru"],
       },
     ],
   };
 
   return (
-    <html lang="en" data-scroll-behavior="smooth" className={inter.variable}>
-      <body className="flex min-h-screen flex-col bg-white text-slate-900 antialiased">
-        <Script id="ld-json" type="application/ld+json" strategy="beforeInteractive">
-          {JSON.stringify(jsonLd)}
-        </Script>
-
-        <SiteShell>{children}</SiteShell>
+    <html
+      lang={meta.htmlLang}
+      dir={meta.dir}
+      data-scroll-behavior="smooth"
+      className={`${inter.variable} ${arabic.variable}`}
+      suppressHydrationWarning
+    >
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+      </head>
+      <body className="flex min-h-screen flex-col font-sans">
+        <SiteShell locale={locale}>{children}</SiteShell>
 
         {gaId && (
           <>

@@ -1,6 +1,7 @@
 import type { MetadataRoute } from "next";
-import { getPublishedPosts } from "@/lib/posts";
+import { getPublishedPosts, postLocales } from "@/lib/posts";
 import { COMPANY } from "@/lib/company";
+import { LOCALES, LOCALE_META, lp, type Locale } from "@/i18n/config";
 
 const SITE = COMPANY.siteUrl;
 
@@ -9,7 +10,7 @@ export const dynamic = "force-dynamic";
 type Freq = MetadataRoute.Sitemap[number]["changeFrequency"];
 
 const STATIC: { path: string; priority: number; freq: Freq }[] = [
-  { path: "", priority: 1, freq: "daily" },
+  { path: "/", priority: 1, freq: "daily" },
   { path: "/what-is-my-ip", priority: 0.9, freq: "weekly" },
   { path: "/ip-risk-score", priority: 0.9, freq: "weekly" },
   { path: "/tools/download-speed-test", priority: 0.8, freq: "weekly" },
@@ -29,33 +30,50 @@ const STATIC: { path: string; priority: number; freq: Freq }[] = [
   { path: "/dmca", priority: 0.3, freq: "yearly" },
 ];
 
+const url = (l: Locale, path: string) => `${SITE}${lp(l, path)}`;
+
+function languages(path: string, available: readonly Locale[]) {
+  const out: Record<string, string> = {};
+  for (const l of available) out[LOCALE_META[l].htmlLang] = url(l, path);
+  if (available.includes("en")) out["x-default"] = url("en", path);
+  return out;
+}
+
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  let postEntries: MetadataRoute.Sitemap = [];
-  let newest = 0;
-  try {
-    const posts = await getPublishedPosts();
-    postEntries = posts.map((p) => {
-      const t = p.updatedAt || p.createdAt || Date.now();
-      newest = Math.max(newest, t);
-      return {
-        url: `${SITE}/blog/${p.slug}`,
-        lastModified: new Date(t),
-        changeFrequency: "monthly" as Freq,
-        priority: 0.7,
-        images: p.coverImage ? [p.coverImage.startsWith("http") ? p.coverImage : `${SITE}${p.coverImage}`] : undefined,
-      };
-    });
-  } catch {
-    /* sitemap still works without posts */
+  const now = new Date();
+  const entries: MetadataRoute.Sitemap = [];
+
+  for (const s of STATIC) {
+    for (const l of LOCALES) {
+      entries.push({
+        url: url(l, s.path),
+        lastModified: now,
+        changeFrequency: s.freq,
+        priority: l === "en" ? s.priority : Math.max(0.1, +(s.priority - 0.1).toFixed(1)),
+        alternates: { languages: languages(s.path, LOCALES) },
+      });
+    }
   }
 
-  const now = new Date();
-  const base: MetadataRoute.Sitemap = STATIC.map((s) => ({
-    url: `${SITE}${s.path}`,
-    lastModified: s.path === "/blog" && newest ? new Date(newest) : now,
-    changeFrequency: s.freq,
-    priority: s.priority,
-  }));
+  for (const l of LOCALES) {
+    try {
+      const posts = await getPublishedPosts(l);
+      for (const p of posts) {
+        const path = `/blog/${p.slug}`;
+        const available = p.source === "admin" ? (["en"] as Locale[]) : postLocales(p.slug);
+        entries.push({
+          url: url(l, path),
+          lastModified: new Date(p.updatedAt || p.createdAt || Date.now()),
+          changeFrequency: "monthly",
+          priority: l === "en" ? 0.7 : 0.6,
+          alternates: { languages: languages(path, available) },
+          images: p.coverImage ? [p.coverImage.startsWith("http") ? p.coverImage : `${SITE}${p.coverImage}`] : undefined,
+        });
+      }
+    } catch {
+      /* sitemap still works without posts */
+    }
+  }
 
-  return [...base, ...postEntries];
+  return entries;
 }
