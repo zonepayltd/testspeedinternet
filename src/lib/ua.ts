@@ -40,4 +40,4 @@ export function parseUA(ua = ""): { device: Device; os: string; browser: string 
 }
 
 /** Search engines we recognise in referrers / visit sources. */
-export const SEARCH_ENGINES = ["Google", "Bing", "DuckDuckGo", "Yahoo", "Yandex", "Baidu", "Ecosia", "Brave", "Naver", "Seznam", "Qwant"] as const;
+export { SEARCH_SOURCES as SEARCH_ENGINES } from "@/lib/sources";

@@ -2,6 +2,7 @@
 
 // Chart + small display helpers for the admin Analytics / Visitors / Speed tests pages.
 // Palette validated (CVD + contrast) for both surfaces: light #fff, dark ink-900.
+import { SEARCH, KIND_LABEL, sourceKind } from "@/lib/sources";
 import FirebaseSetup, { isFirebaseMissing } from "@/components/admin/FirebaseSetup";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Area, AreaChart, Bar, BarChart, CartesianGrid, Cell, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
@@ -320,25 +321,20 @@ export function ShareBar({ items }: { items: { label: string; value: number; col
 
 /* ------------------------------------------------------------------ badges & logos */
 
-export const SEARCH = new Set(["Google", "Bing", "DuckDuckGo", "Yahoo", "Yandex", "Baidu", "Ecosia", "Brave", "Naver", "Seznam", "Qwant"]);
+export { SEARCH, KIND_LABEL, sourceKind };
+
 const ENGINE_DOMAIN: Record<string, string> = {
   Google: "google.com", Bing: "bing.com", DuckDuckGo: "duckduckgo.com", Yahoo: "yahoo.com", Yandex: "yandex.com", Baidu: "baidu.com",
-  Ecosia: "ecosia.org", Brave: "search.brave.com", Naver: "naver.com", Seznam: "seznam.cz", Qwant: "qwant.com",
+  Ecosia: "ecosia.org", Brave: "search.brave.com", Naver: "naver.com", Seznam: "seznam.cz", Qwant: "qwant.com", Startpage: "startpage.com", Mojeek: "mojeek.com",
+  ChatGPT: "chatgpt.com", Perplexity: "perplexity.ai", Gemini: "gemini.google.com", Copilot: "copilot.microsoft.com", Claude: "claude.ai",
+  "Twitter/X": "x.com", Telegram: "telegram.org", WhatsApp: "whatsapp.com", Pinterest: "pinterest.com",
   Facebook: "facebook.com", Reddit: "reddit.com", Instagram: "instagram.com", Twitter: "x.com", X: "x.com", LinkedIn: "linkedin.com", YouTube: "youtube.com", TikTok: "tiktok.com",
 };
-export function sourceKind(s: string): "search" | "social" | "ai" | "direct" | "referral" {
-  if (SEARCH.has(s)) return "search";
-  if (!s || s === "Direct" || s === "Internal") return "direct";
-  if (/chatgpt|openai|perplexity|gemini|copilot|claude\.ai|you\.com|poe\.com|deepseek/i.test(s)) return "ai";
-  if (/facebook|instagram|twitter|^x$|t\.co|reddit|linkedin|tiktok|youtube|pinterest|telegram|whatsapp|vk\.com|snapchat|quora/i.test(s)) return "social";
-  return "referral";
-}
 const KIND_TONE: Record<string, Tone> = { search: "blue", social: "violet", ai: "cyan", direct: "slate", referral: "amber" };
-export const KIND_LABEL: Record<string, string> = { search: "Search", social: "Social", ai: "AI assistants", direct: "Direct", referral: "Referral" };
 
-export function SourceLogo({ name, size = 16 }: { name: string; size?: number }) {
+export function SourceLogo({ name, size = 16, domain: forced }: { name: string; size?: number; domain?: string }) {
   const [failed, setFailed] = useState(false);
-  const domain = ENGINE_DOMAIN[name] || (/\./.test(name) ? name : "");
+  const domain = forced || ENGINE_DOMAIN[name] || (/\./.test(name) ? name : "");
   if (!domain || failed)
     return (
       <span style={{ width: size, height: size, fontSize: size * 0.55 }} className="inline-flex shrink-0 items-center justify-center rounded-[4px] bg-slate-200 font-bold uppercase text-slate-600 dark:bg-white/10 dark:text-slate-300" aria-hidden="true">

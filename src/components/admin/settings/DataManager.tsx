@@ -2,10 +2,10 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import WipeAnalyticsCard from "./WipeAnalytics";
-import { AlertTriangle, BarChart3, Database, Download, Eye, Gauge, Mail, Megaphone, RefreshCw, RotateCcw, Trash2, Users, Wifi, type LucideIcon } from "lucide-react";
+import { AlertTriangle, BarChart3, Bot, Database, Download, Eye, Gauge, Mail, Megaphone, RefreshCw, RotateCcw, Trash2, Users, Wifi, type LucideIcon } from "lucide-react";
 import { Button, Select, Skeleton, api, fmtNum, inputCls, useAdminUI, type Tone } from "@/components/admin/ui";
 
-type Coll = "visits" | "visitors" | "presence" | "tests" | "messages";
+type Coll = "visits" | "visitors" | "presence" | "tests" | "bots" | "messages";
 type Counts = Record<Coll | "ads", number>;
 type Data = { counts: Counts; adStats: { impressions: number; clicks: number } };
 
@@ -14,6 +14,7 @@ const COLLS: { id: Coll; title: string; noun: string; desc: string; field: strin
   { id: "visitors", title: "Visitors", noun: "visitors", desc: "One profile per unique visitor (first & last seen, visit count).", field: "last seen", icon: Users, tone: "violet", ranges: [7, 30, 90, 365] },
   { id: "presence", title: "Online sessions", noun: "sessions", desc: "Live heartbeats. Anything older than a minute is stale and safe to remove.", field: "last heartbeat", icon: Wifi, tone: "green", ranges: [1, 7, 30, 90] },
   { id: "tests", title: "Speed tests", noun: "speed tests", desc: "Each press of GO: results, ISP, server, device.", field: "test time", icon: Gauge, tone: "cyan", ranges: [7, 30, 90, 365] },
+  { id: "bots", title: "Bot visits", noun: "bot visits", desc: "Crawler hits (Googlebot, Bingbot, AdSense…). Kept apart from visitors; trimmed after 60 days.", field: "crawl time", icon: Bot, tone: "slate", ranges: [7, 30, 60] },
   { id: "messages", title: "Messages", noun: "messages", desc: "Contact form submissions.", field: "received date", icon: Mail, tone: "amber", ranges: [7, 30, 90, 365] },
 ];
 
@@ -23,6 +24,7 @@ const TONE_ICON: Record<string, string> = {
   green: "bg-emerald-50 text-emerald-600 ring-emerald-100 dark:bg-emerald-400/10 dark:text-emerald-300 dark:ring-emerald-400/20",
   cyan: "bg-cyan-50 text-cyan-600 ring-cyan-100 dark:bg-cyan-400/10 dark:text-cyan-300 dark:ring-cyan-400/20",
   amber: "bg-amber-50 text-amber-600 ring-amber-100 dark:bg-amber-400/10 dark:text-amber-300 dark:ring-amber-400/20",
+  slate: "bg-slate-100 text-slate-600 ring-slate-200 dark:bg-white/[0.06] dark:text-slate-300 dark:ring-white/10",
   rose: "bg-rose-50 text-rose-600 ring-rose-100 dark:bg-rose-400/10 dark:text-rose-300 dark:ring-rose-400/20",
 };
 

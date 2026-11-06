@@ -1,3 +1,4 @@
+import { sourceKind } from "@/lib/sources";
 import { adminDb, adminConfigured } from "@/lib/firebaseAdmin";
 import { Timestamp } from "firebase-admin/firestore";
 import { requireAdmin, unauthorized } from "@/lib/requireAdmin";
@@ -10,18 +11,9 @@ export const dynamic = "force-dynamic";
 // GET /api/admin/analytics?range=today|7d|30d|90d  (or &from=YYYY-MM-DD&to=YYYY-MM-DD)  [&tz=-60] [&format=csv]
 // Aggregates page views (`visits`) in memory. Capped so a single request stays cheap.
 const CAP = 25_000;
-const SOCIAL = /facebook|instagram|twitter|^x$|t\.co|reddit|linkedin|tiktok|youtube|pinterest|telegram|whatsapp|vk\.com|snapchat|quora/i;
-const AI = /chatgpt|openai|perplexity|gemini|copilot|claude\.ai|you\.com|poe\.com|deepseek/i;
 const ENGINES = new Set<string>(SEARCH_ENGINES);
 
 
-function sourceKind(src: string): "search" | "social" | "ai" | "direct" | "referral" {
-  if (ENGINES.has(src)) return "search";
-  if (src === "Direct" || src === "Internal" || !src) return "direct";
-  if (AI.test(src)) return "ai";
-  if (SOCIAL.test(src)) return "social";
-  return "referral";
-}
 
 const normSource = (s: string) => (!s || s === "Internal" ? "Direct" : s);
 const hostOf = (ref: string) => {

@@ -90,7 +90,7 @@ export async function generateMetadata(): Promise<Metadata> {
       google: cfg.googleVerification || undefined,
       other: cfg.bingVerification ? { "msvalidate.01": cfg.bingVerification } : {},
     },
-    other: cfg.adsenseClient ? { "google-adsense-account": cfg.adsenseClient } : {},
+    other: cfg.adsenseClient.trim() ? { "google-adsense-account": cfg.adsenseClient.trim() } : {},
   };
 }
 
@@ -107,6 +107,7 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
   const [cfg, locale] = await Promise.all([getSiteConfig(), getLocale()]);
   const meta = LOCALE_META[locale];
   const gaId = cfg.gaMeasurementId;
+  const adsenseClient = /^ca-pub-\d{10,20}$/.test(cfg.adsenseClient.trim()) ? cfg.adsenseClient.trim() : "";
 
   const jsonLd = {
     "@context": "https://schema.org",
@@ -143,6 +144,14 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+        {/* Google AdSense: the exact snippet AdSense asks for, in the raw <head> HTML so its site verification finds it. */}
+        {adsenseClient && !cfg.adsPersonalized && (
+          <script dangerouslySetInnerHTML={{ __html: "window.adsbygoogle=window.adsbygoogle||[];window.adsbygoogle.requestNonPersonalizedAds=1;" }} />
+        )}
+        {adsenseClient && (
+          // eslint-disable-next-line @next/next/no-sync-scripts
+          <script async src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${adsenseClient}`} crossOrigin="anonymous" />
+        )}
       </head>
       <body className="flex min-h-screen flex-col font-sans">
         <SiteShell locale={locale}>{children}</SiteShell>
@@ -156,21 +165,6 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
           </>
         )}
 
-        {cfg.adsenseClient && (
-          <>
-            {!cfg.adsPersonalized && (
-              <Script id="adsense-npa" strategy="beforeInteractive">
-                {`window.adsbygoogle=window.adsbygoogle||[];window.adsbygoogle.requestNonPersonalizedAds=1;`}
-              </Script>
-            )}
-            <Script
-              id="adsbygoogle-js"
-              strategy="afterInteractive"
-              crossOrigin="anonymous"
-              src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${cfg.adsenseClient}`}
-            />
-          </>
-        )}
       </body>
     </html>
   );

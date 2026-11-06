@@ -278,14 +278,15 @@ export function AdsTab({ config: c, set, dirty }: TabProps) {
           status={<SetPill on={Boolean(c.adsenseClient)} />}
           help={
             <>
-              <ExtLink href="https://www.google.com/adsense/">AdSense</ExtLink> → Account → Account information. The verification script loads as soon as this is set.
+              <ExtLink href="https://www.google.com/adsense/">AdSense</ExtLink> → Account → Account information. You can also paste the whole AdSense code snippet, meta tag or ads.txt line here — the ID is picked out automatically.
             </>
           }
           value={c.adsenseClient}
           onChange={(v) => set("adsenseClient", v)}
           transform={(v) => {
             const t = v.trim();
-            return /^pub-\d+$/.test(t) ? `ca-${t}` : t;
+            const m = /pub-\d{10,20}/.exec(t);
+            return m ? `ca-${m[0]}` : t;
           }}
           placeholder="ca-pub-0000000000000000"
           validate={validators.adsense}
@@ -324,6 +325,8 @@ export function AdsTab({ config: c, set, dirty }: TabProps) {
         </div>
       </Section>
 
+      <AdsenseVerify client={valid ? c.adsenseClient.trim() : ""} dirty={dirty} adsTxtOk={!!matches} />
+
       <Note>
         <span>
           Ad units, placements, page targeting and custom image/script ads are managed in the{" "}
@@ -334,6 +337,98 @@ export function AdsTab({ config: c, set, dirty }: TabProps) {
         </span>
       </Note>
     </div>
+  );
+}
+
+/** Live check that the site really serves what AdSense looks for, plus step-by-step help. */
+function AdsenseVerify({ client, dirty, adsTxtOk }: { client: string; dirty: boolean; adsTxtOk: boolean }) {
+  const { toast } = useAdminUI();
+  const [state, setState] = useState<{ meta: boolean; script: boolean } | null>(null);
+  const [checking, setChecking] = useState(false);
+  const check = useCallback(() => {
+    if (!client) return setState(null);
+    setChecking(true);
+    fetch(`/?verify=${Date.now()}`, { cache: "no-store" })
+      .then((r) => r.text())
+      .then((html) => {
+        const head = html.split("</head>")[0] || "";
+        setState({
+          meta: head.includes(`name="google-adsense-account" content="${client}"`),
+          script: new RegExp(`<script[^>]+adsbygoogle\\.js\\?client=${client}`).test(head),
+        });
+      })
+      .catch(() => setState({ meta: false, script: false }))
+      .finally(() => setChecking(false));
+  }, [client]);
+  useEffect(() => {
+    if (!dirty) check();
+  }, [dirty, check]);
+
+  const snippet = client
+    ? `<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${client}"\n     crossorigin="anonymous"></script>`
+    : "";
+  const Row = ({ ok, label, detail }: { ok: boolean | undefined; label: string; detail: string }) => (
+    <li className="flex items-start gap-2.5">
+      {ok === undefined ? (
+        <CircleDashed className="mt-0.5 h-4 w-4 shrink-0 text-slate-300" aria-hidden="true" />
+      ) : ok ? (
+        <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" aria-hidden="true" />
+      ) : (
+        <XCircle className="mt-0.5 h-4 w-4 shrink-0 text-rose-500" aria-hidden="true" />
+      )}
+      <span>
+        <span className="font-medium text-slate-800 dark:text-slate-200">{label}</span>
+        <span className="block text-xs text-slate-500 dark:text-slate-400">{detail}</span>
+      </span>
+    </li>
+  );
+
+  return (
+    <Section
+      title="AdSense site verification"
+      description="Nothing to paste into the code — the site adds Google's verification for you on every page."
+      actions={
+        client ? (
+          <Button size="sm" icon={RefreshCw} loading={checking} onClick={check}>
+            Check again
+          </Button>
+        ) : null
+      }
+    >
+      <div className="space-y-4 px-5 py-4 text-sm">
+        {!client ? (
+          <p className="text-slate-500 dark:text-slate-400">Enter your Publisher ID above and save — the AdSense code, meta tag and ads.txt are then installed automatically.</p>
+        ) : (
+          <>
+            <ul className="space-y-2.5">
+              <Row ok={state?.script} label="AdSense code snippet in <head>" detail="The script AdSense asks you to paste — already on every page." />
+              <Row ok={state?.meta} label="Meta tag" detail={`<meta name="google-adsense-account" content="${client}">`} />
+              <Row ok={adsTxtOk} label="ads.txt" detail="Authorised seller line for your publisher ID." />
+            </ul>
+            <div>
+              <div className="mb-1.5 flex items-center justify-between">
+                <span className="text-xs font-medium text-slate-500 dark:text-slate-400">Installed code (for reference)</span>
+                <button
+                  type="button"
+                  onClick={() => navigator.clipboard?.writeText(snippet).then(() => toast("Copied"))}
+                  className="inline-flex items-center gap-1 text-xs font-medium text-brand-600 hover:underline dark:text-brand-400"
+                >
+                  <Copy className="h-3.5 w-3.5" aria-hidden="true" /> Copy
+                </button>
+              </div>
+              <pre className="overflow-x-auto rounded-xl bg-slate-950 px-4 py-3 font-mono text-[12px] leading-relaxed text-slate-100 dark:bg-black/40">{snippet}</pre>
+            </div>
+            <ol className="list-decimal space-y-1 ps-5 text-xs text-slate-600 dark:text-slate-400">
+              <li>
+                Open <ExtLink href="https://www.google.com/adsense/new/u/0/sites">AdSense → Sites</ExtLink> and pick <span className="font-mono">testspeedinternet.com</span>.
+              </li>
+              <li>Choose <strong>AdSense code snippet</strong> (or <strong>Meta tag</strong>) — both are already installed — tick “I&apos;ve placed the code” and click <strong>Verify</strong>.</li>
+              <li>Then click <strong>Request review</strong>. The ads.txt status in AdSense can take a few days to change from “Not found” to “Authorized”.</li>
+            </ol>
+          </>
+        )}
+      </div>
+    </Section>
   );
 }
 

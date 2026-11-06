@@ -14,6 +14,7 @@ const STEPS = [
   { id: "visitors", label: "Visitors" },
   { id: "presence", label: "Online sessions" },
   { id: "tests", label: "Speed tests" },
+  { id: "bots", label: "Bot visits" },
 ] as const;
 
 export function useWipeAnalytics(onDone?: () => void) {
@@ -53,7 +54,7 @@ export function useWipeAnalytics(onDone?: () => void) {
   const dialog = asking ? (
     <TypeToConfirm
       title="Delete ALL analytics?"
-      message="This permanently deletes every page view, visitor, online session and speed test, and resets ad impressions/clicks to 0. Messages, blog posts, your ads and settings are kept. This can't be undone."
+      message="This permanently deletes every page view, visitor, online session, speed test and bot visit, and resets ad impressions/clicks to 0. Messages, blog posts, your ads and settings are kept. This can't be undone."
       onClose={() => setAsking(false)}
       onConfirm={run}
     />
@@ -75,7 +76,7 @@ export default function WipeAnalyticsCard({ onDone }: { onDone?: () => void }) {
           <div>
             <h3 className="text-[15px] font-semibold text-slate-900 dark:text-white">Delete all analytics</h3>
             <p className="mt-0.5 text-sm text-slate-600 dark:text-slate-400">
-              Start fresh: removes all page views, visitors, online sessions and speed tests, and resets ad stats. Messages, posts, ads and settings stay.
+              Start fresh: removes all page views, visitors, online sessions, speed tests and bot visits, and resets ad stats. Messages, posts, ads and settings stay.
             </p>
           </div>
         </div>

@@ -1,20 +1,34 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Download, Eye, Gauge, Globe2, Monitor, RefreshCw, Search, Smartphone, Tablet, Trash2, Users, Wifi } from "lucide-react";
+import { Bot, Download, Eye, Gauge, Link2, Monitor, MousePointerClick, RefreshCw, Search, Share2, Smartphone, Sparkles, Tablet, Trash2, Users, Wifi, type LucideIcon } from "lucide-react";
 import {
   Badge, Button, Card, EmptyState, Flag, IconButton, PageHeader, Pagination, SearchInput, Select, Skeleton, StatCard, TBody, THead, Table,
   api, fmtDateTime, fmtNum, timeAgo, useAdminUI,
 } from "@/components/admin/ui";
 import { Checkbox, Drawer, ErrorBox, LangBadge, STATUS_LABEL, STATUS_TONE, SourceBadge, SourceLogo, downloadUrl, fmtMbps } from "@/components/admin/analytics/charts";
+import { sourceKind } from "@/lib/sources";
 import { DeleteMenu } from "@/components/admin/analytics/DeleteMenu";
+import BotsPanel, { botsUrl } from "@/components/admin/analytics/BotsPanel";
 
 type Visitor = {
   id: string; visits: number; firstSeen: number; lastSeen: number; country: string; countryCode: string; city: string; ip: string; source: string; lastPath: string;
   online: boolean; device: string; os: string; browser: string;
 };
 type Facet = { value: string; count: number; name?: string };
-type ListData = { visitors: Visitor[]; total: number; page: number; pages: number; totalAll: number; onlineNow: number; capped: boolean; facets: { sources: Facet[]; countries: Facet[]; devices: Facet[] } };
+type ListData = { visitors: Visitor[]; total: number; page: number; pages: number; totalAll: number; onlineNow: number; capped: boolean; facets: { sources: Facet[]; kinds: Facet[]; countries: Facet[]; devices: Facet[] } };
+
+// Traffic types shown as tabs. "bots" is a separate log, never mixed with visitors.
+type Channel = "" | "search" | "direct" | "social" | "ai" | "referral" | "bots";
+const CHANNELS: { id: Channel; label: string; icon: LucideIcon }[] = [
+  { id: "", label: "All visitors", icon: Users },
+  { id: "search", label: "Search engines", icon: Search },
+  { id: "direct", label: "Direct", icon: MousePointerClick },
+  { id: "social", label: "Social", icon: Share2 },
+  { id: "referral", label: "Other websites", icon: Link2 },
+  { id: "ai", label: "AI assistants", icon: Sparkles },
+  { id: "bots", label: "Bots", icon: Bot },
+];
 type Detail = {
   visitor: (Visitor & { ua: string }) | null;
   visits: { id: string; path: string; referrer: string; source: string; sessionId: string; countryCode: string; city: string; ip: string; screen: string; ts: number }[];
@@ -36,6 +50,8 @@ export default function VisitorsPage() {
   const [source, setSource] = useState("");
   const [country, setCountry] = useState("");
   const [device, setDevice] = useState("");
+  const [channel, setChannel] = useState<Channel>("");
+  const [botTotal, setBotTotal] = useState<number | null>(null);
   const [page, setPage] = useState(1);
   const [data, setData] = useState<ListData | null>(null);
   const [error, setError] = useState("");
@@ -44,17 +60,34 @@ export default function VisitorsPage() {
   const [busy, setBusy] = useState(false);
   const [openId, setOpenId] = useState<string | null>(null);
 
-  // Deep link: /admin/visitors?v=<visitorId> opens that visitor's panel.
+  // Deep links: ?v=<visitorId> opens that visitor's panel, ?type=search|direct|…|bots picks a tab.
   useEffect(() => {
-    const v = new URLSearchParams(window.location.search).get("v");
+    const sp = new URLSearchParams(window.location.search);
+    const v = sp.get("v");
     if (v) setOpenId(v);
+    const t = sp.get("type") as Channel | null;
+    if (t && CHANNELS.some((c) => c.id === t)) setChannel(t);
   }, []);
+
+  // Bot count for the stat card / tab (last 7 days).
+  useEffect(() => {
+    api<{ total: number }>(botsUrl("7d")).then((r) => setBotTotal(r.total)).catch(() => setBotTotal(null));
+  }, []);
+
+  const pickChannel = (c: Channel) => {
+    setChannel(c);
+    setSource("");
+    const url = new URL(window.location.href);
+    if (c) url.searchParams.set("type", c);
+    else url.searchParams.delete("type");
+    window.history.replaceState(null, "", url);
+  };
 
   useEffect(() => {
     const t = setTimeout(() => setQ(qInput.trim()), 300);
     return () => clearTimeout(t);
   }, [qInput]);
-  useEffect(() => setPage(1), [q, source, country, device]);
+  useEffect(() => setPage(1), [q, source, country, device, channel]);
 
   const query = useMemo(() => {
     const p = new URLSearchParams();
@@ -62,10 +95,12 @@ export default function VisitorsPage() {
     if (source) p.set("source", source);
     if (country) p.set("country", country);
     if (device) p.set("device", device);
+    if (channel && channel !== "bots") p.set("kind", channel);
     return p;
-  }, [q, source, country, device]);
+  }, [q, source, country, device, channel]);
 
   const load = useCallback(async () => {
+    if (channel === "bots") return;
     setLoading(true);
     setError("");
     try {
@@ -80,7 +115,7 @@ export default function VisitorsPage() {
     } finally {
       setLoading(false);
     }
-  }, [query, page]);
+  }, [query, page, channel]);
 
   useEffect(() => {
     load();
@@ -137,8 +172,10 @@ export default function VisitorsPage() {
   const rows = data?.visitors || [];
   const allChecked = rows.length > 0 && rows.every((r) => selected.has(r.id));
   const filtersActive = !!(q || source || country || device);
-  const topSource = data?.facets.sources[0];
-  const topCountry = data?.facets.countries[0];
+  const kindCount = (k: string) => data?.facets.kinds?.find((x) => x.value === k)?.count || 0;
+  const humans = data?.facets.kinds?.reduce((a, b) => a + b.count, 0) || 0;
+  const share = (n: number) => (humans ? `${Math.round((n / humans) * 100)}% of visitors` : undefined);
+  const searchFacets = (data?.facets.sources || []).filter((s) => !channel || channel === "bots" || sourceKind(s.value) === channel);
 
   return (
     <div className="mx-auto max-w-7xl">
@@ -157,18 +194,48 @@ export default function VisitorsPage() {
 
       {error && <div className="mb-6"><ErrorBox message={error} onRetry={load} /></div>}
 
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard label="Total visitors" icon={Users} tone="blue" loading={!data} value={fmtNum(data?.totalAll)} hint="all time" />
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
+        <StatCard label="Total visitors" icon={Users} tone="blue" loading={!data} value={fmtNum(data?.totalAll)} hint="real people, all time" />
+        <StatCard label="From search engines" icon={Search} tone="violet" loading={!data} value={fmtNum(kindCount("search"))} hint={share(kindCount("search"))} />
+        <StatCard label="Direct" icon={MousePointerClick} tone="amber" loading={!data} value={fmtNum(kindCount("direct"))} hint={share(kindCount("direct"))} />
+        <StatCard label="Bot visits" icon={Bot} tone="slate" loading={botTotal === null && !data} value={botTotal === null ? "–" : fmtNum(botTotal)} hint="last 7 days · not counted" />
         <StatCard label="Online now" icon={Eye} tone="green" live loading={!data} value={fmtNum(data?.onlineNow)} hint="active in the last 60 s" />
-        <StatCard label="Top source" icon={Search} tone="violet" loading={!data} value={topSource ? <span className="flex items-center gap-2"><SourceLogo name={topSource.value} size={22} />{topSource.value}</span> : "–"} hint={topSource ? `${fmtNum(topSource.count)} visitors` : undefined} />
-        <StatCard label="Top country" icon={Globe2} tone="amber" loading={!data} value={topCountry ? <span className="flex items-center gap-2"><Flag cc={topCountry.value} className="!h-[18px] !w-6" />{topCountry.name}</span> : "–"} hint={topCountry ? `${fmtNum(topCountry.count)} visitors` : undefined} />
       </div>
 
-      <Card className="mt-6" title="All visitors" description={data ? `${fmtNum(data.total)} ${filtersActive ? "matching" : "most recent"}${data.capped ? " (latest 5,000 scanned)" : ""} · click a row for details` : undefined} bodyClassName="p-0">
+      {/* Traffic type tabs */}
+      <div className="mt-6 -mx-1 overflow-x-auto px-1 pb-1">
+        <div role="tablist" aria-label="Traffic type" className="inline-flex min-w-full gap-1 rounded-xl border border-slate-200 bg-white p-1 shadow-sm dark:border-white/[0.08] dark:bg-ink-900 sm:min-w-0">
+          {CHANNELS.map((c) => {
+            const n = c.id === "" ? humans : c.id === "bots" ? botTotal : kindCount(c.id);
+            const active = channel === c.id;
+            return (
+              <button
+                key={c.id || "all"}
+                type="button"
+                role="tab"
+                aria-selected={active}
+                onClick={() => pickChannel(c.id)}
+                className={`inline-flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+                  active ? "bg-slate-900 text-white shadow-sm dark:bg-white dark:text-slate-900" : "text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-white/[0.06] dark:hover:text-white"
+                } ${c.id === "bots" ? "sm:ms-2" : ""}`}
+              >
+                <c.icon className="h-4 w-4" aria-hidden="true" />
+                {c.label}
+                {n != null && data && <span className={`rounded-md px-1.5 text-[11px] tabular-nums ${active ? "bg-white/20 dark:bg-slate-900/10" : "bg-slate-100 text-slate-500 dark:bg-white/[0.08] dark:text-slate-400"}`}>{fmtNum(n)}</span>}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {channel === "bots" ? (
+        <div className="mt-6"><BotsPanel /></div>
+      ) : (
+      <Card className="mt-6" title={CHANNELS.find((c) => c.id === channel)?.label || "All visitors"} description={data ? `${fmtNum(data.total)} ${filtersActive ? "matching" : "most recent"}${data.capped ? " (latest 5,000 scanned)" : ""} · click a row for details` : undefined} bodyClassName="p-0">
         <div className="flex flex-col gap-2 border-b border-slate-100 p-4 dark:border-white/[0.06] lg:flex-row lg:items-center">
           <SearchInput value={qInput} onChange={setQInput} placeholder="Search IP, city, country, source, visitor ID…" className="lg:w-80" />
           <div className="grid grid-cols-2 gap-2 sm:flex">
-            <Select value={source} onChange={setSource} options={[{ value: "", label: "All sources" }, ...(data?.facets.sources || []).map((s) => ({ value: s.value, label: `${s.value} (${s.count})` }))]} className="sm:w-44" />
+            <Select value={source} onChange={setSource} options={[{ value: "", label: "All sources" }, ...searchFacets.map((s) => ({ value: s.value, label: `${s.value} (${s.count})` }))]} className="sm:w-44" />
             <Select value={device} onChange={setDevice} options={[{ value: "", label: "All devices" }, ...(data?.facets.devices || []).map((s) => ({ value: s.value, label: `${s.value[0].toUpperCase()}${s.value.slice(1)} (${s.count})` }))]} className="sm:w-40" />
             <Select value={country} onChange={setCountry} options={[{ value: "", label: "All countries" }, ...(data?.facets.countries || []).map((s) => ({ value: s.value, label: `${s.name} (${s.count})` }))]} className="col-span-2 sm:w-48" />
           </div>
@@ -236,6 +303,7 @@ export default function VisitorsPage() {
         )}
         {data && <Pagination page={data.page} pages={data.pages} onPage={setPage} />}
       </Card>
+      )}
 
       <VisitorDrawer id={openId} onClose={() => setOpenId(null)} onDelete={async (id) => { if (await deleteIds([id])) setOpenId(null); }} />
     </div>

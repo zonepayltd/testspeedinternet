@@ -1,12 +1,14 @@
 import { adminDb, adminConfigured } from "@/lib/firebaseAdmin";
 import { requireAdmin, unauthorized } from "@/lib/requireAdmin";
 import { parseUA } from "@/lib/ua";
+import { sourceKind } from "@/lib/sources";
+import { identifyBot } from "@/lib/bots";
 import { csv, deleteQuery, deleteVisitorCascade, fail, iso, ms, ok, readJson } from "@/components/admin/analytics/server";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-// GET    /api/admin/visitors?q&source&country&device&page&limit [&format=csv]
+// GET    /api/admin/visitors?q&source&kind&country&device&page&limit [&format=csv]
 //        → { visitors (page), total, pages, totalAll, facets }
 //        Reads the most recent visitors (by lastSeen, capped) and filters in memory, so no composite indexes are needed.
 // DELETE /api/admin/visitors   body { ids: string[] } (cascades to visits, tests, presence) | { all: true } (visitors + visits + presence)
@@ -21,6 +23,7 @@ export async function GET(request: Request) {
   const source = sp.get("source") || "";
   const country = (sp.get("country") || "").toUpperCase();
   const device = sp.get("device") || "";
+  const kind = sp.get("kind") || ""; // search | direct | social | ai | referral
   const limit = Math.min(200, Math.max(5, Number(sp.get("limit")) || 25));
   const page = Math.max(1, Number(sp.get("page")) || 1);
 
@@ -33,7 +36,8 @@ export async function GET(request: Request) {
     ]);
     const online = new Set(presence.docs.map((d) => d.id));
 
-    const all = snap.docs.map((d) => {
+    // Bots are listed separately (Bots tab), never as visitors.
+    const all = snap.docs.filter((d) => { const ua = d.get("ua"); return !ua || !identifyBot(ua); }).map((d) => {
       const x = d.data();
       const ua = x.ua || "";
       const src = x.source === "Internal" || !x.source ? "Direct" : x.source;
@@ -47,6 +51,7 @@ export async function GET(request: Request) {
         city: x.city || "",
         ip: x.ip || "",
         source: src as string,
+        kind: sourceKind(src),
         lastPath: x.lastPath || "/",
         online: online.has(d.id),
         ...parseUA(ua),
@@ -56,6 +61,7 @@ export async function GET(request: Request) {
     const filtered = all.filter(
       (v) =>
         (!source || v.source === source) &&
+        (!kind || v.kind === kind) &&
         (!country || v.countryCode === country) &&
         (!device || v.device === device) &&
         (!q || [v.id, v.ip, v.city, v.country, v.countryCode, v.source, v.lastPath].some((f) => f.toLowerCase().includes(q))),
@@ -64,8 +70,8 @@ export async function GET(request: Request) {
     if (sp.get("format") === "csv") {
       return csv(
         [
-          ["visitorId", "firstSeen", "lastSeen", "visits", "source", "country", "countryCode", "city", "ip", "lastPath", "device", "os", "browser"],
-          ...filtered.map((v) => [v.id, iso(v.firstSeen), iso(v.lastSeen), v.visits, v.source, v.country, v.countryCode, v.city, v.ip, v.lastPath, v.device, v.os, v.browser]),
+          ["visitorId", "firstSeen", "lastSeen", "visits", "source", "type", "country", "countryCode", "city", "ip", "lastPath", "device", "os", "browser"],
+          ...filtered.map((v) => [v.id, iso(v.firstSeen), iso(v.lastSeen), v.visits, v.source, v.kind, v.country, v.countryCode, v.city, v.ip, v.lastPath, v.device, v.os, v.browser]),
         ],
         `visitors-${new Date().toISOString().slice(0, 10)}.csv`,
       );
@@ -90,6 +96,7 @@ export async function GET(request: Request) {
       onlineNow: online.size,
       facets: {
         sources: countBy((v) => v.source),
+        kinds: countBy((v) => v.kind),
         countries: countBy((v) => v.countryCode).map((c) => ({ ...c, name: all.find((v) => v.countryCode === c.value)?.country || c.value })),
         devices: countBy((v) => v.device),
       },

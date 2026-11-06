@@ -20,6 +20,7 @@ const COLLECTIONS = {
   visitors: "lastSeen",
   presence: "lastSeen",
   tests: "ts",
+  bots: "ts",
   messages: "ts",
 } as const;
 type Coll = keyof typeof COLLECTIONS;

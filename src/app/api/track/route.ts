@@ -1,31 +1,11 @@
 import { adminDb, adminConfigured } from "@/lib/firebaseAdmin";
 import { FieldValue } from "firebase-admin/firestore";
 import { parseUA } from "@/lib/ua";
+import { identifyBot } from "@/lib/bots";
+import { sourceFromReferrer } from "@/lib/sources";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-
-function sourceFromReferrer(ref: string, selfHost: string): string {
-  if (!ref) return "Direct";
-  try {
-    const h = new URL(ref).hostname.replace(/^www\./, "");
-    if (selfHost && h.includes(selfHost.replace(/^www\./, ""))) return "Internal";
-    if (/google\./.test(h)) return "Google";
-    if (/bing\./.test(h)) return "Bing";
-    if (/duckduckgo/.test(h)) return "DuckDuckGo";
-    if (/yahoo\./.test(h)) return "Yahoo";
-    if (/yandex\./.test(h)) return "Yandex";
-    if (/facebook|fb\.com/.test(h)) return "Facebook";
-    if (/t\.co|twitter|x\.com/.test(h)) return "Twitter/X";
-    if (/instagram/.test(h)) return "Instagram";
-    if (/linkedin/.test(h)) return "LinkedIn";
-    if (/reddit/.test(h)) return "Reddit";
-    if (/t\.me|telegram/.test(h)) return "Telegram";
-    return h;
-  } catch {
-    return "Direct";
-  }
-}
 
 export async function POST(request: Request) {
   if (!adminConfigured) return Response.json({ ok: false }, { status: 200 });
@@ -59,7 +39,7 @@ export async function POST(request: Request) {
   const source = sourceFromReferrer(referrer, selfHost);
   const ua = request.headers.get("user-agent")?.slice(0, 300) || "";
   // Don't count search-engine crawlers and headless bots as visitors.
-  if (parseUA(ua).device === "bot") return Response.json({ ok: true });
+  if (parseUA(ua).device === "bot" || identifyBot(ua)) return Response.json({ ok: true });
 
   // Visitor IP + geo. Country code comes free from Cloudflare/Vercel headers;
   // otherwise (and on localhost) we resolve it via ip-api.
