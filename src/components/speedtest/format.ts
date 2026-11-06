@@ -107,31 +107,6 @@ export function countryName(cc: string | undefined, fallback: string | undefined
   return fallback ?? "";
 }
 
-// Logo.dev publishable token (set NEXT_PUBLIC_LOGODEV_TOKEN in .env.local).
-const LOGODEV_TOKEN = process.env.NEXT_PUBLIC_LOGODEV_TOKEN ?? "";
-
-// Well-known ISP names → brand domain, so we can show their logo.
-const ISP_DOMAINS: [string, string][] = [
-  ["maroc telecom", "iam.ma"],
-  ["maroctelecom", "iam.ma"],
-  ["menara", "iam.ma"],
-  ["orange", "orange.ma"],
-  ["inwi", "inwi.ma"],
-  ["wana", "inwi.ma"],
-];
-
-export function ispLogoUrl(isp?: string): string | null {
-  if (!isp) return null;
-  const s = isp.toLowerCase();
-  const hit = ISP_DOMAINS.find(([key]) => s.includes(key));
-  if (!hit) return null;
-  const domain = hit[1];
-  if (LOGODEV_TOKEN) {
-    return `https://img.logo.dev/${domain}?token=${LOGODEV_TOKEN}&size=128&format=png&retina=true`;
-  }
-  return `https://www.google.com/s2/favicons?sz=128&domain=${domain}`;
-}
-
 // ---------------------------------------------------------------------------
 // Verdict — what the connection is good for
 // ---------------------------------------------------------------------------

@@ -20,7 +20,8 @@ import {
 import { pick } from "@/i18n/config";
 import { useLocale, LocaleLink } from "@/i18n/client";
 import { ipRiskMessages, type IpRiskMessages } from "@/i18n/messages/ipRisk";
-import { Flag, IspLogo, Skeleton } from "@/components/ip/shared";
+import { Flag, ProviderLogo, Skeleton } from "@/components/ip/shared";
+import { ispBrand } from "@/lib/isp";
 
 type ScoreInfo = {
   ok: boolean;
@@ -190,8 +191,8 @@ export default function IpSecurity({ variant = "full" }: { variant?: "full" | "c
       label: t.signals.provider.label,
       value: (
         <span className="flex min-w-0 items-center gap-2">
-          <IspLogo isp={info?.provider} size={18} />
-          <span className="truncate">{info?.provider || t.typeNames.unknown}</span>
+          {info?.provider && <ProviderLogo brand={ispBrand(info.provider)} size={18} />}
+          <span className="truncate">{info?.provider ? ispBrand(info.provider).name : t.typeNames.unknown}</span>
         </span>
       ),
       text: t.signals.provider.text,

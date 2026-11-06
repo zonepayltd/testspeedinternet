@@ -44,13 +44,14 @@ import {
   formatMs,
   formatSpeed,
   formatTick,
-  ispLogoUrl,
   niceMax,
   numberLocale,
   rateConnection,
   type Results,
 } from "./speedtest/format";
 import { addToHistory, clearHistory, loadHistory, type HistoryEntry } from "./speedtest/history";
+import { ProviderLogo } from "./ip/shared";
+import { ispBrand } from "@/lib/isp";
 
 type Mode = "full" | "download" | "upload" | "ping";
 type Phase = "idle" | "ping" | "download" | "upload" | "done" | "error" | "cancelled";
@@ -61,6 +62,8 @@ type ConnInfo = {
   ok: boolean;
   ip?: string;
   isp?: string;
+  org?: string;
+  as?: string;
   country?: string;
   countryCode?: string;
   city?: string;
@@ -180,6 +183,14 @@ export default function SpeedTest({ mode = "full" }: { mode?: Mode }) {
     fetch(`${CF_DOWN}?bytes=0&probe=1&t=${Date.now()}`, { cache: "no-store", signal: ctrl.signal })
       .then((r) => {
         const c = r.headers.get("cf-meta-colo");
+        if (c) setColo((prev) => prev || c);
+      })
+      .catch(() => {});
+    // Fallback: the trace endpoint always reports the serving data centre ("colo=LIS").
+    fetch("https://speed.cloudflare.com/cdn-cgi/trace", { cache: "no-store", signal: ctrl.signal })
+      .then((r) => r.text())
+      .then((txt) => {
+        const c = /^colo=([A-Z]{3})$/m.exec(txt)?.[1];
         if (c) setColo((prev) => prev || c);
       })
       .catch(() => {});
@@ -801,81 +812,117 @@ function ConnectionBar({
   t: SpeedTestMessages;
   locale: Locale;
 }) {
-  const ispLogo = ispLogoUrl(info?.isp);
+  const [copied, setCopied] = useState(false);
+  const loading = info == null;
+  const ok = !!info?.ok;
+  const brand = ispBrand(info?.isp, info?.org, info?.as);
   const flag = flagUrl(info?.countryCode);
   const flag2x = flagUrl(info?.countryCode, true);
-  const country = info?.ok ? countryName(info.countryCode, info.country, locale) : "";
-  const parts = [info?.city, country].filter(Boolean) as string[];
-  const sep = locale === "ar" ? "، " : ", ";
-  const place = parts.length ? (
-    <>
-      {parts.map((p, i) => (
-        <span key={i}>
-          {i > 0 && sep}
-          <bdi>{p}</bdi>
-        </span>
-      ))}
-    </>
-  ) : null;
-  const loading = info == null;
-  const value = "font-medium text-slate-700 dark:text-slate-200";
+  const country = ok ? countryName(info!.countryCode, info!.country, locale) : "";
+  const place = [info?.city, country].filter(Boolean).join(locale === "ar" ? "، " : ", ");
+  const server = colo ? coloCity(colo) : "";
+
+  const copyIp = async () => {
+    if (!info?.ip) return;
+    try {
+      await navigator.clipboard.writeText(info.ip);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1800);
+    } catch {
+      /* clipboard blocked */
+    }
+  };
+
+  const label = "block text-[10.5px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500 [html[lang=ar]_&]:normal-case [html[lang=ar]_&]:tracking-normal";
+  const val = "block truncate text-[13px] font-semibold text-slate-800 dark:text-slate-100 sm:text-sm";
+  const skel = <span className="mt-1 block h-4 w-24 animate-pulse rounded bg-slate-200 dark:bg-white/10" />;
 
   return (
-    <dl className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1.5 text-xs text-slate-500 dark:text-slate-400 sm:gap-x-5 sm:text-[13px]">
-      <div className="flex min-w-0 items-center gap-1.5">
-        <dt className="sr-only">{t.conn.provider}</dt>
-        {ispLogo ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={ispLogo} width={16} height={16} alt="" className="h-4 w-4 rounded-sm object-contain" />
+    <dl className="mx-auto grid w-full max-w-3xl grid-cols-2 overflow-hidden rounded-2xl border border-slate-200/80 bg-white/70 text-start shadow-sm shadow-slate-900/[0.04] backdrop-blur-md dark:border-white/[0.08] dark:bg-white/[0.04] dark:shadow-none sm:grid-cols-4 sm:divide-x sm:divide-slate-200/80 sm:rtl:divide-x-reverse sm:dark:divide-white/[0.08]">
+      {/* Provider */}
+      <div className="col-span-2 flex min-w-0 items-center gap-3 border-b border-slate-200/80 px-4 py-3 dark:border-white/[0.08] sm:col-span-1 sm:border-b-0">
+        {loading ? (
+          <span className="h-9 w-9 shrink-0 animate-pulse rounded-lg bg-slate-200 dark:bg-white/10" />
+        ) : ok && brand.name ? (
+          <ProviderLogo brand={brand} size={36} className="rounded-lg" />
         ) : (
-          <Wifi className="h-3.5 w-3.5 text-brand-500" aria-hidden="true" />
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-brand-50 text-brand-600 dark:bg-brand-400/10 dark:text-brand-300">
+            <Wifi className="h-4 w-4" aria-hidden="true" />
+          </span>
         )}
-        <dd className={`max-w-[16rem] truncate ${value}`}>
-          {loading ? t.conn.detecting : info.ok ? info.isp || "–" : t.conn.unavailable}
-        </dd>
-      </div>
-      {info?.ok && info.ip && (
-        <div className="flex items-center gap-1.5">
-          <dt className="text-slate-400 dark:text-slate-500">IP</dt>
-          <dd dir="ltr" className={`font-mono text-[11px] sm:text-xs ${value}`}>
-            {info.ip}
+        <div className="min-w-0">
+          <dt className={label}>{t.conn.provider}</dt>
+          <dd className={val} title={info?.isp || undefined}>
+            {loading ? skel : ok ? brand.name || "–" : t.conn.unavailable}
           </dd>
         </div>
-      )}
-      {place && (
-        <div className="flex items-center gap-1.5">
-          <dt className="sr-only">{t.conn.location}</dt>
-          {flag ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={flag}
-              srcSet={flag2x ? `${flag2x} 2x` : undefined}
-              width={18}
-              height={13}
-              alt=""
-              className="h-[13px] w-[18px] rounded-[2px] object-cover ring-1 ring-black/5 dark:ring-white/10"
-            />
-          ) : (
-            <MapPin className="h-3.5 w-3.5 text-brand-500" aria-hidden="true" />
-          )}
-          <dd className={value}>{place}</dd>
+      </div>
+
+      {/* IP address */}
+      <div className="flex min-w-0 items-center gap-2 border-e border-slate-200/80 px-4 py-3 dark:border-white/[0.08] sm:border-e-0">
+        <div className="min-w-0 flex-1">
+          <dt className={label}>{t.conn.ip}</dt>
+          <dd dir="ltr" className={`${val} font-mono text-[12.5px] sm:text-[13px]`}>
+            {loading ? skel : ok && info?.ip ? info.ip : "–"}
+          </dd>
         </div>
-      )}
-      <div className="flex items-center gap-1.5">
-        <dt className="flex items-center gap-1.5">
-          <Server className="h-3.5 w-3.5 text-brand-500" aria-hidden="true" />
-          <span className="sr-only">{t.conn.server}</span>
-        </dt>
-        <dd className={value}>
-          {colo ? (
-            <>
-              {coloCity(colo)}
-              {coloCity(colo) !== colo && <span className="ms-1 text-slate-400 dark:text-slate-500">({colo})</span>}
-            </>
-          ) : (
-            t.conn.auto
-          )}
-        </dd>
+        {ok && info?.ip && (
+          <button
+            type="button"
+            onClick={copyIp}
+            aria-label={copied ? t.copied : `${t.copy} IP`}
+            title={copied ? t.copied : t.copy}
+            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-white/10 dark:hover:text-white"
+          >
+            {copied ? <Check className="h-3.5 w-3.5 text-emerald-500" aria-hidden="true" /> : <Copy className="h-3.5 w-3.5" aria-hidden="true" />}
+          </button>
+        )}
+      </div>
+
+      {/* Location */}
+      <div className="flex min-w-0 items-center gap-2 px-4 py-3">
+        <div className="min-w-0">
+          <dt className={label}>{t.conn.location}</dt>
+          <dd className={`${val} flex items-center gap-1.5`}>
+            {loading ? (
+              skel
+            ) : place ? (
+              <>
+                {flag ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={flag}
+                    srcSet={flag2x ? `${flag2x} 2x` : undefined}
+                    width={18}
+                    height={13}
+                    alt=""
+                    className="h-[13px] w-[18px] shrink-0 rounded-[2px] object-cover ring-1 ring-black/5 dark:ring-white/10"
+                  />
+                ) : (
+                  <MapPin className="h-3.5 w-3.5 shrink-0 text-brand-500" aria-hidden="true" />
+                )}
+                <bdi className="truncate">{place}</bdi>
+              </>
+            ) : (
+              "–"
+            )}
+          </dd>
+        </div>
+      </div>
+
+      {/* Test server */}
+      <div className="col-span-2 flex min-w-0 items-center gap-2 border-t border-slate-200/80 px-4 py-3 dark:border-white/[0.08] sm:col-span-1 sm:border-t-0">
+        <div className="min-w-0">
+          <dt className={label}>{t.conn.server}</dt>
+          <dd className={`${val} flex items-center gap-1.5`}>
+            <span className="relative flex h-2 w-2 shrink-0">
+              <span className="absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-60 motion-safe:animate-ping" />
+              <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
+            </span>
+            <bdi className="truncate">{server || t.conn.auto}</bdi>
+            {server && server !== colo && <span className="text-xs font-medium text-slate-400 dark:text-slate-500">{colo}</span>}
+          </dd>
+        </div>
       </div>
     </dl>
   );

@@ -22,7 +22,8 @@ import {
 import { pick, LOCALE_META } from "@/i18n/config";
 import { useLocale } from "@/i18n/client";
 import { ipMessages } from "@/i18n/messages/ip";
-import { Flag, IspLogo, Skeleton } from "@/components/ip/shared";
+import { Flag, ProviderLogo, Skeleton } from "@/components/ip/shared";
+import { ispBrand } from "@/lib/isp";
 
 type ConnInfo = {
   ok: boolean;
@@ -121,6 +122,7 @@ export default function IpDetails() {
   const lat = info?.lat;
   const lon = info?.lon;
   const hasCoords = typeof lat === "number" && typeof lon === "number";
+  const brand = ispBrand(info?.isp, info?.org, info?.as);
   const showOrg = !!info?.org && info.org.toLowerCase() !== (info.isp ?? "").toLowerCase();
 
   let localTime = "";
@@ -192,8 +194,8 @@ export default function IpDetails() {
                   )}
                   {info?.isp && (
                     <span className="pill">
-                      <Wifi className="h-3.5 w-3.5" aria-hidden="true" />
-                      {info.isp}
+                      <ProviderLogo brand={brand} size={16} />
+                      {brand.name}
                     </span>
                   )}
                 </>
@@ -259,8 +261,13 @@ export default function IpDetails() {
           <dl className="-mb-px grid grid-cols-1 sm:grid-cols-2">
             <Row icon={Wifi} label={t.labels.isp} loading={loading}>
               <span className="flex min-w-0 items-center gap-2">
-                <IspLogo isp={info?.isp} />
-                <span className="truncate">{info?.isp || "—"}</span>
+                <ProviderLogo brand={brand} />
+                <span className="min-w-0">
+                  <span className="block truncate">{info?.isp ? brand.name : "—"}</span>
+                  {info?.isp && brand.name !== info.isp && (
+                    <span className="block truncate text-xs font-normal text-slate-400 dark:text-slate-500">{info.isp}</span>
+                  )}
+                </span>
               </span>
             </Row>
             <Row icon={Network} label={t.labels.asn} loading={loading} ltr>
