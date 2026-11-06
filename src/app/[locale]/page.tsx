@@ -85,6 +85,7 @@ export default async function HomePage({ params }: Props) {
 
       {/* Hero: the speed test is the centerpiece */}
       <PageHero
+        backdrop
         eyebrow={t.hero.eyebrow}
         icon={Zap}
         titleLead={t.hero.titleLead}

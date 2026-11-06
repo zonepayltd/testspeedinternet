@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import type { LucideIcon } from "lucide-react";
+import HeroBackdrop from "./HeroBackdrop";
 
 type Props = {
   eyebrow: string;
@@ -10,14 +11,22 @@ type Props = {
   children?: ReactNode;
   /** Extra classes on the inner container (e.g. tighter bottom padding). */
   className?: string;
+  /** Show the illustrated network background (homepage + speed test tools). */
+  backdrop?: boolean;
 };
 
 /** Standard page hero: soft brand glow + grid, eyebrow, H1 with gradient highlight, lead. */
-export default function PageHero({ eyebrow, icon: Icon, titleLead, titleHighlight, intro, children, className = "" }: Props) {
+export default function PageHero({ eyebrow, icon: Icon, titleLead, titleHighlight, intro, children, className = "", backdrop = false }: Props) {
   return (
     <section className="hero-bg isolate">
-      <div aria-hidden="true" className="hero-glow" />
-      <div aria-hidden="true" className="hero-grid" />
+      {backdrop ? (
+        <HeroBackdrop />
+      ) : (
+        <>
+          <div aria-hidden="true" className="hero-glow" />
+          <div aria-hidden="true" className="hero-grid" />
+        </>
+      )}
       <div className={`container relative flex flex-col items-center pb-14 pt-12 text-center md:pb-20 md:pt-16 ${className}`}>
         <span className="eyebrow">
           {Icon && <Icon className="h-3.5 w-3.5" aria-hidden="true" />}

@@ -67,7 +67,7 @@ export default function SpeedToolPage({ locale, tool }: { locale: Locale; tool: 
       <JsonLd data={appJsonLd} />
 
       {/* Hero + test */}
-      <PageHero eyebrow={p.badge} icon={cfg.heroIcon} titleLead={p.titleLead} titleHighlight={p.titleHighlight} intro={p.intro}>
+      <PageHero backdrop eyebrow={p.badge} icon={cfg.heroIcon} titleLead={p.titleLead} titleHighlight={p.titleHighlight} intro={p.intro}>
         <div id="speed-test" className="mt-10 w-full max-w-5xl scroll-mt-24">
           <SpeedTest mode={cfg.mode} />
         </div>
