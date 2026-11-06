@@ -11,7 +11,7 @@ const inter = Inter({
   display: "swap",
 });
 
-const SITE_URL = "https://testspeedinternet.com";
+const SITE_URL = "https://www.testspeedinternet.com";
 
 // Render every public page on demand so config-driven head tags (Google Search
 // Console verification, Analytics, AdSense) always reflect the latest values
@@ -23,7 +23,7 @@ export async function generateMetadata(): Promise<Metadata> {
   return {
     metadataBase: new URL(SITE_URL),
     title: {
-      default: "Test Speed Internet | Free Internet Speed Test (Download, Upload & Ping)",
+      default: "Internet Speed Test: Free Download, Upload & Ping Test",
       template: "%s | TestSpeedInternet",
     },
     description:
@@ -45,7 +45,7 @@ export async function generateMetadata(): Promise<Metadata> {
     publisher: "ZONEPAY LTD",
     category: "technology",
     formatDetection: { telephone: false, email: false, address: false },
-    alternates: { canonical: "/" },
+    alternates: { types: { "application/rss+xml": `${SITE_URL}/feed.xml` } },
     openGraph: {
       type: "website",
       url: SITE_URL,

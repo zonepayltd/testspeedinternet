@@ -4,7 +4,7 @@ import { Gauge, Target, ShieldCheck, Building2, ChevronRight } from "lucide-reac
 import { COMPANY } from "@/lib/company";
 
 export const metadata: Metadata = {
-  title: "About Us | The Team Behind TestSpeedInternet",
+  title: "About Us: Who Runs This Speed Test",
   description:
     "Learn about TestSpeedInternet, a free internet speed test operated by ZONEPAY LTD. Our mission is to give everyone a fast, accurate and private way to check their connection.",
   alternates: { canonical: "/about" },
@@ -84,6 +84,27 @@ export default function AboutPage() {
             page and our{" "}
             <Link href="/ip-risk-score" className="font-semibold text-brand-600 hover:text-brand-700">IP Risk Score</Link>{" "}
             checker.
+          </p>
+          <h2 className="mt-12 text-2xl font-extrabold tracking-tight text-slate-900">Guides you can trust</h2>
+          <p className="mt-4 text-base leading-relaxed text-slate-600">
+            Our editorial team publishes practical guides on WiFi, ping, streaming, home networking and fixing
+            slow internet on the{" "}
+            <Link href="/blog" className="font-semibold text-brand-600 hover:text-brand-700">TestSpeedInternet blog</Link>.
+            Every article is researched from official documentation and standards, checked for accuracy and
+            updated when things change. Our{" "}
+            <Link href="/editorial-policy" className="font-semibold text-brand-600 hover:text-brand-700">editorial policy</Link>{" "}
+            explains how we work, and that advertisers never influence what we write.
+          </p>
+          <h2 className="mt-12 text-2xl font-extrabold tracking-tight text-slate-900">How we keep the test accurate</h2>
+          <p className="mt-4 text-base leading-relaxed text-slate-600">
+            The speed test runs in your browser and measures real transfers over several parallel connections, then
+            reports download, upload, ping and jitter. Read{" "}
+            <Link href="/how-it-works" className="font-semibold text-brand-600 hover:text-brand-700">how it works</Link>{" "}
+            for the details, or our guide to{" "}
+            <Link href="/blog/how-to-test-internet-speed-accurately" className="font-semibold text-brand-600 hover:text-brand-700">
+              testing your speed accurately
+            </Link>
+            .
           </p>
         </div>
       </section>

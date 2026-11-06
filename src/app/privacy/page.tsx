@@ -3,7 +3,7 @@ import LegalPage from "@/components/LegalPage";
 import { COMPANY } from "@/lib/company";
 
 export const metadata: Metadata = {
-  title: "Privacy Policy | TestSpeedInternet",
+  title: "Privacy Policy",
   description:
     "How TestSpeedInternet, operated by ZONEPAY LTD, handles your data when you run an internet speed test or use our IP tools.",
   alternates: { canonical: "/privacy" },
@@ -13,7 +13,7 @@ export default function PrivacyPage() {
   return (
     <LegalPage
       title="Privacy Policy"
-      updated="May 29, 2026"
+      updated="November 6, 2026"
       intro={`This Privacy Policy explains how ${COMPANY.brand}, operated by ${COMPANY.legalName}, handles information when you use our website and tools.`}
       sections={[
         {
@@ -46,6 +46,7 @@ export default function PrivacyPage() {
           heading: "Cookies and analytics",
           body: [
             "We use a small number of cookies for essential functionality, optional analytics (such as Google Analytics) and, where enabled, advertising. Analytics help us understand aggregate, anonymous usage so we can improve the service. You can clear or block cookies in your browser at any time.",
+            "Our Cookie Policy (testspeedinternet.com/cookies) lists the cookies we use and how to control them.",
           ],
         },
         {

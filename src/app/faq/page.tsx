@@ -3,7 +3,7 @@ import Link from "next/link";
 import { HelpCircle, ChevronRight, Gauge } from "lucide-react";
 
 export const metadata: Metadata = {
-  title: "FAQ | Internet Speed Test Questions Answered",
+  title: "Speed Test FAQ: Your Questions Answered",
   description:
     "Answers to common questions about internet speed tests, download and upload speed, ping, jitter, accuracy and how to get faster internet. Free speed test FAQ.",
   keywords: [

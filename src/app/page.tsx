@@ -11,10 +11,12 @@ import {
 } from "lucide-react";
 import SpeedTest from "@/components/SpeedTest";
 import AdSlot from "@/components/ads/AdSlot";
+import Link from "next/link";
+import PostCard from "@/components/PostCard";
+import { getPublishedPosts } from "@/lib/posts";
 
 export const metadata: Metadata = {
-  title:
-    "Internet Speed Test | Test Your Download, Upload & Ping Speed Free",
+  title: { absolute: "Internet Speed Test: Free Download, Upload & Ping Test" },
   description:
     "Run a free internet speed test now. Measure your download speed, upload speed, ping and jitter in seconds on any device. No app or signup required.",
   alternates: { canonical: "/" },
@@ -92,7 +94,8 @@ const FAQS = [
   },
 ];
 
-export default function HomePage() {
+export default async function HomePage() {
+  const latest = (await getPublishedPosts()).slice(0, 6);
   const faqJsonLd = {
     "@context": "https://schema.org",
     "@type": "FAQPage",
@@ -107,7 +110,7 @@ export default function HomePage() {
     "@context": "https://schema.org",
     "@type": "WebApplication",
     name: "TestSpeedInternet",
-    url: "https://testspeedinternet.com",
+    url: "https://www.testspeedinternet.com",
     applicationCategory: "UtilitiesApplication",
     operatingSystem: "Any",
     description:
@@ -290,6 +293,36 @@ export default function HomePage() {
           </div>
         </div>
       </section>
+
+      {/* Latest guides */}
+      {latest.length > 0 && (
+        <section className="border-t border-slate-100 py-16 md:py-24">
+          <div className="container">
+            <div className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-end">
+              <div>
+                <h2 className="text-3xl font-extrabold tracking-tight text-slate-900 sm:text-4xl">
+                  Guides to a faster connection
+                </h2>
+                <p className="mt-3 text-lg text-slate-500">
+                  Plain-English help with WiFi, ping, streaming and slow internet.
+                </p>
+              </div>
+              <Link
+                href="/blog"
+                className="inline-flex items-center gap-1.5 text-sm font-semibold text-brand-600 hover:text-brand-700"
+              >
+                All articles
+                <ChevronRight className="h-4 w-4" aria-hidden="true" />
+              </Link>
+            </div>
+            <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+              {latest.map((p) => (
+                <PostCard key={p.slug} post={p} />
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* Final CTA */}
       <section className="py-16 md:py-24">

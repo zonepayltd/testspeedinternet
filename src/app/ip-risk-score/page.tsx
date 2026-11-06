@@ -13,7 +13,7 @@ import {
 import IpSecurity from "@/components/IpSecurity";
 
 export const metadata: Metadata = {
-  title: "IP Risk Score | Check Your IP Reputation, VPN & Proxy Score",
+  title: { absolute: "IP Risk Score: Check IP Reputation, VPN & Proxy" },
   description:
     "Check your IP risk score for free. Instantly see if your IP address is flagged as a proxy, VPN, Tor or high-risk, plus your connection type and fraud score (0-100).",
   keywords: [
@@ -31,7 +31,7 @@ export const metadata: Metadata = {
   alternates: { canonical: "/ip-risk-score" },
   openGraph: {
     type: "website",
-    url: "https://testspeedinternet.com/ip-risk-score",
+    url: "https://www.testspeedinternet.com/ip-risk-score",
     title: "IP Risk Score Checker",
     description:
       "See if your IP is flagged as a proxy, VPN or high-risk, with a 0-100 fraud score and connection type.",

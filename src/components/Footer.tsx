@@ -30,7 +30,9 @@ const FOOTER_SECTIONS = [
     title: "Company",
     links: [
       { href: "/about", label: "About Us" },
+      { href: "/editorial-policy", label: "Editorial Policy" },
       { href: "/contact", label: "Contact" },
+      { href: "/cookies", label: "Cookie Policy" },
       { href: "/privacy", label: "Privacy Policy" },
       { href: "/terms", label: "Terms of Service" },
       { href: "/dmca", label: "DMCA" },

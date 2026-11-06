@@ -7,9 +7,10 @@ type Props = {
   intro: string;
   updated: string;
   sections: LegalSection[];
+  badge?: string;
 };
 
-export default function LegalPage({ title, intro, updated, sections }: Props) {
+export default function LegalPage({ title, intro, updated, sections, badge = "Legal" }: Props) {
   return (
     <>
       {/* Hero */}
@@ -18,7 +19,7 @@ export default function LegalPage({ title, intro, updated, sections }: Props) {
         <div className="container relative py-14 text-center md:py-16">
           <span className="inline-flex items-center gap-2 rounded-full border border-brand-200 bg-white/80 px-3.5 py-1.5 text-xs font-semibold uppercase tracking-wider text-brand-600 shadow-sm backdrop-blur">
             <ShieldCheck className="h-3.5 w-3.5" aria-hidden="true" />
-            Legal
+            {badge}
           </span>
           <h1 className="mt-5 text-4xl font-extrabold tracking-tight text-slate-900 sm:text-5xl">
             {title}

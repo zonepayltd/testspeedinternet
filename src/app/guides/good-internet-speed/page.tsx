@@ -12,7 +12,7 @@ import {
 } from "lucide-react";
 
 export const metadata: Metadata = {
-  title: "What Is a Good Internet Speed? | Mbps Guide for 2026",
+  title: { absolute: "What Is a Good Internet Speed? Mbps Guide (2026)" },
   description:
     "What is a good internet speed? See recommended download and upload speeds in Mbps for streaming, gaming, video calls and big households, and check if yours is fast enough.",
   keywords: [

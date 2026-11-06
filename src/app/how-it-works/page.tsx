@@ -12,7 +12,7 @@ import {
 } from "lucide-react";
 
 export const metadata: Metadata = {
-  title: "How It Works | How Our Internet Speed Test Measures Your Connection",
+  title: "How Our Internet Speed Test Works",
   description:
     "Learn how our internet speed test works. See how we measure your download speed, upload speed, ping and jitter using global servers and parallel connections.",
   keywords: [

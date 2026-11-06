@@ -3,7 +3,7 @@ import { Download, Gauge, Server, Lightbulb } from "lucide-react";
 import SpeedToolPage from "@/components/SpeedToolPage";
 
 export const metadata: Metadata = {
-  title: "Download Speed Test | Check Your Download Speed (Mbps) Free",
+  title: { absolute: "Download Speed Test: Check Your Mbps Free & Fast" },
   description:
     "Free download speed test. Measure how fast you can download data from the internet in Mbps, on any device, in seconds. Accurate, real-time and no app needed.",
   keywords: [

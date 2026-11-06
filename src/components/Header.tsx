@@ -8,8 +8,8 @@ const NAV_LINKS = [
   { href: "/", label: "Speed Test" },
   { href: "/what-is-my-ip", label: "What Is My IP" },
   { href: "/ip-risk-score", label: "IP Risk Score" },
-  { href: "/how-it-works", label: "How It Works" },
-  { href: "/faq", label: "FAQ" },
+  { href: "/guides/good-internet-speed", label: "Speed Guide" },
+  { href: "/blog", label: "Blog" },
   { href: "/contact", label: "Contact" },
 ] as const;
 

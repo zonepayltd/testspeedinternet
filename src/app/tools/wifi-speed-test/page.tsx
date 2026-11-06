@@ -3,7 +3,7 @@ import { Wifi, Signal, Cable, Router } from "lucide-react";
 import SpeedToolPage from "@/components/SpeedToolPage";
 
 export const metadata: Metadata = {
-  title: "WiFi Speed Test | Test Your Wireless Internet Speed Free",
+  title: { absolute: "WiFi Speed Test: Check Your Wireless Speed Free" },
   description:
     "Free WiFi speed test. Check your wireless download speed, upload speed and ping on any device, in any room. Find dead zones and see if your WiFi is fast enough.",
   keywords: [

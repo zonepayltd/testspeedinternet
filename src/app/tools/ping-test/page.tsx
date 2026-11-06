@@ -3,7 +3,7 @@ import { Zap, Activity, Gauge, Cable } from "lucide-react";
 import SpeedToolPage from "@/components/SpeedToolPage";
 
 export const metadata: Metadata = {
-  title: "Ping & Latency Test | Check Your Ping and Jitter Free",
+  title: { absolute: "Ping Test: Check Your Latency & Jitter Free Online" },
   description:
     "Free ping and latency test. Measure your connection's response time (ping) and jitter in milliseconds — essential for gaming, video calls and live streaming.",
   keywords: [

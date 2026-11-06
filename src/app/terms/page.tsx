@@ -3,7 +3,7 @@ import LegalPage from "@/components/LegalPage";
 import { COMPANY } from "@/lib/company";
 
 export const metadata: Metadata = {
-  title: "Terms of Service | TestSpeedInternet",
+  title: "Terms of Service",
   description:
     "The terms that govern your use of TestSpeedInternet, a free internet speed test operated by ZONEPAY LTD.",
   alternates: { canonical: "/terms" },

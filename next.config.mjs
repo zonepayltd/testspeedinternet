@@ -4,6 +4,31 @@ const nextConfig = {
   poweredByHeader: false,
   // Don't fail the production build on ESLint warnings (types are still checked).
   eslint: { ignoreDuringBuilds: true },
+  // Ship the Markdown blog articles with the server bundle (they're read at runtime).
+  outputFileTracingIncludes: {
+    "/blog": ["./src/content/blog/**/*"],
+    "/blog/[slug]": ["./src/content/blog/**/*"],
+    "/blog/[slug]/opengraph-image": ["./src/content/blog/**/*"],
+    "/sitemap.xml": ["./src/content/blog/**/*"],
+    "/feed.xml": ["./src/content/blog/**/*"],
+  },
+  async headers() {
+    return [
+      {
+        source: "/:path*",
+        headers: [
+          { key: "X-Content-Type-Options", value: "nosniff" },
+          { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+          { key: "X-Frame-Options", value: "SAMEORIGIN" },
+          { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" },
+        ],
+      },
+      {
+        source: "/blog/:file*.svg",
+        headers: [{ key: "Cache-Control", value: "public, max-age=604800, stale-while-revalidate=86400" }],
+      },
+    ];
+  },
 };
 
 export default nextConfig;

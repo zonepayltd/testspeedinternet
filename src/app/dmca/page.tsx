@@ -3,7 +3,7 @@ import LegalPage from "@/components/LegalPage";
 import { COMPANY } from "@/lib/company";
 
 export const metadata: Metadata = {
-  title: "DMCA Policy | TestSpeedInternet",
+  title: "DMCA Policy",
   description:
     "DMCA / copyright policy for TestSpeedInternet, owned and operated by ZONEPAY LTD. How to submit a takedown notice.",
   alternates: { canonical: "/dmca" },

@@ -3,7 +3,7 @@ import { Upload, Gauge, Server, ArrowDownUp } from "lucide-react";
 import SpeedToolPage from "@/components/SpeedToolPage";
 
 export const metadata: Metadata = {
-  title: "Upload Speed Test | Check Your Upload Speed (Mbps) Free",
+  title: { absolute: "Upload Speed Test: Check Your Upload Mbps Free" },
   description:
     "Free upload speed test. Measure how fast you can send data to the internet in Mbps — for video calls, backups, streaming and file sharing. Accurate and instant.",
   keywords: [

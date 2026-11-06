@@ -4,7 +4,7 @@ import { COMPANY } from "@/lib/company";
 import ContactForm from "@/components/ContactForm";
 
 export const metadata: Metadata = {
-  title: "Contact Us | TestSpeedInternet",
+  title: "Contact Us",
   description:
     "Get in touch with TestSpeedInternet, operated by ZONEPAY LTD. Contact us for support, feedback, partnerships or press enquiries.",
   alternates: { canonical: "/contact" },

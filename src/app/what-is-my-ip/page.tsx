@@ -5,7 +5,7 @@ import IpDetails from "@/components/IpDetails";
 import IpSecurity from "@/components/IpSecurity";
 
 export const metadata: Metadata = {
-  title: "What Is My IP Address | See Your Public IP, Location & ISP",
+  title: "What Is My IP Address? Public IP, Location & ISP",
   description:
     "Instantly find out what your IP address is. See your public IP, approximate location on a map, internet provider (ISP), city, country and time zone. Free and private.",
   keywords: [
@@ -25,7 +25,7 @@ export const metadata: Metadata = {
   alternates: { canonical: "/what-is-my-ip" },
   openGraph: {
     type: "website",
-    url: "https://testspeedinternet.com/what-is-my-ip",
+    url: "https://www.testspeedinternet.com/what-is-my-ip",
     title: "What Is My IP Address?",
     description:
       "See your public IP address, location on a map, internet provider, city, country and time zone.",
