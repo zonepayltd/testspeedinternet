@@ -95,6 +95,15 @@ function useReducedMotion(): boolean {
 }
 
 /** Eases a number toward `target` with requestAnimationFrame (instant when reduced motion). */
+/** Pause between steps so the needle can fall back to 0. Resolves early if the run is stopped. */
+function settle(signal: AbortSignal, ms = 900): Promise<void> {
+  return new Promise((resolve) => {
+    if (signal.aborted) return resolve();
+    const id = setTimeout(resolve, ms);
+    signal.addEventListener("abort", () => { clearTimeout(id); resolve(); }, { once: true });
+  });
+}
+
 function useEased(target: number, reduce: boolean): number {
   const [value, setValue] = useState(target);
   const ref = useRef(target);
@@ -217,7 +226,7 @@ export default function SpeedTest({ mode = "full" }: { mode?: Mode }) {
       setSeries({ download: dl, upload: ul, ping: pg });
       const primary = r2.download ?? r2.upload ?? r2.ping ?? 0;
       setScaleMax(niceMax(Math.max(primary, 1), mode === "ping" ? PING_TIERS : SCALE_TIERS));
-      setLive(primary);
+      setLive(0);
       setPhase("done");
     }
   }, [mode]);
@@ -278,6 +287,12 @@ export default function SpeedTest({ mode = "full" }: { mode?: Mode }) {
       }
 
       if (wantUpload) {
+        // Let the needle drop from the download result to 0 before upload starts.
+        if (wantDownload) {
+          setLive(0);
+          await settle(signal);
+          if (signal.aborted) throw new AbortedError();
+        }
         setPhase("upload");
         setLive(0);
         r.upload = await measureThroughput("upload", {
@@ -298,7 +313,9 @@ export default function SpeedTest({ mode = "full" }: { mode?: Mode }) {
       setScaleMax(
         msScale ? niceMax(Math.max(primary, 1), PING_TIERS) : niceMax(Math.max(r.download ?? 0, r.upload ?? 0, 1))
       );
-      setLive(primary);
+      // Finished: the needle returns to 0 and GO is ready for a new test;
+      // the results stay in the cards below.
+      setLive(0);
       setPhase("done");
       setHistory(addToHistory({ t: Date.now(), mode, ...r }));
       setAnnounce(`${t.live.finished} ${summaryLines(r, t, locale).join(". ")}`);
@@ -639,12 +656,12 @@ function GaugeCenter({
   t: SpeedTestMessages;
   onStart: () => void;
 }) {
-  if (phase === "idle" || phase === "cancelled" || phase === "error") {
+  if (phase === "idle" || phase === "cancelled" || phase === "error" || phase === "done") {
     return (
       <button
         type="button"
         onClick={onStart}
-        aria-label={t.start}
+        aria-label={phase === "done" ? t.testAgain : t.start}
         className="group relative flex aspect-square w-[44%] items-center justify-center rounded-full bg-gradient-to-br from-brand-500 to-brand-700 text-white shadow-xl shadow-brand-600/30 ring-[6px] ring-brand-500/10 transition-transform duration-200 hover:scale-[1.04] active:scale-[0.97] dark:from-brand-400 dark:to-brand-600 dark:shadow-brand-500/20 dark:ring-brand-400/10"
       >
         <span
@@ -658,8 +675,8 @@ function GaugeCenter({
     );
   }
 
-  const shown: Step =
-    phase === "done" ? (mode === "full" ? "download" : mode) : (phase as Step);
+  // Only reached while a step is running (idle/done show the GO button).
+  const shown = phase as Step;
   const Icon = shown === "upload" ? Upload : shown === "ping" ? Zap : Download;
   const unit = shown === "ping" ? t.units.ms : t.units.mbps;
   const labelTone =
@@ -670,7 +687,7 @@ function GaugeCenter({
         : "text-brand-600 dark:text-brand-400";
 
   return (
-    <div className="flex flex-col items-center" aria-hidden={phase !== "done"}>
+    <div className="flex flex-col items-center" aria-hidden="true">
       <span className={`inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider ${labelTone}`}>
         <Icon className="h-3.5 w-3.5" aria-hidden="true" />
         {t.metrics[shown]}
