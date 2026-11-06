@@ -31,12 +31,16 @@ export default function AppDownloads() {
       .catch(() => {});
   }, []);
 
+  // Only show stores that have a link in the admin settings; hide the row otherwise.
+  const available = items(t).filter(({ key }) => Boolean(apps[key]));
+  if (available.length === 0) return null;
+
   return (
-    <div className="text-center">
+    <div className="mt-12 border-t border-slate-200/80 pt-10 text-center dark:border-white/[0.06]">
       <h2 className="text-sm font-semibold text-slate-900 dark:text-white">{t.heading}</h2>
 
       <div className="mt-5 flex flex-wrap items-center justify-center gap-3">
-        {items(t).map(({ key, top, label, icon: Icon }) => {
+        {available.map(({ key, top, label, icon: Icon }) => {
           const url = apps[key];
           const isApk = key === "appApk";
 
@@ -59,18 +63,7 @@ export default function AppDownloads() {
             );
           }
 
-          return (
-            <span
-              key={key}
-              className="flex items-center gap-2.5 rounded-xl border border-dashed border-slate-200 bg-white px-4 py-2.5 text-slate-400 dark:border-white/10 dark:bg-white/[0.02] dark:text-slate-500"
-            >
-              <Icon className="h-6 w-6 text-slate-300 dark:text-slate-600" aria-hidden="true" />
-              <span className="flex flex-col text-start leading-tight">
-                <span className="text-[10px] font-medium text-slate-400 dark:text-slate-500">{label}</span>
-                <span className="text-sm font-bold">{t.comingSoon}</span>
-              </span>
-            </span>
-          );
+          return null;
         })}
       </div>
     </div>
