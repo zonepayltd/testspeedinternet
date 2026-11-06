@@ -132,10 +132,18 @@ function svg(theme) {
 </svg>`;
 }
 
+// Plain dotted map (no arcs/cities) for the admin "live map": same projection as the hero.
+function plain(theme) {
+  const fill = theme === "dark" ? "#94a3b8" : "#64748b";
+  const d = dots.map(([x, y]) => `<circle cx="${x}" cy="${y}" r="1.7"/>`).join("");
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}"><g fill="${fill}" fill-opacity="${theme === "dark" ? 0.32 : 0.28}">${d}</g></svg>`;
+}
+
 const out = path.join(root, "public", "hero");
 fs.mkdirSync(out, { recursive: true });
 for (const theme of ["dark", "light"]) {
   const file = path.join(out, `world-${theme}.svg`);
   fs.writeFileSync(file, svg(theme));
   console.log(`${file}  ${(fs.statSync(file).size / 1024).toFixed(0)} KB, ${dots.length} dots, ${arcs.length} arcs`);
+  fs.writeFileSync(path.join(out, `world-map-${theme}.svg`), plain(theme));
 }

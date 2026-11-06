@@ -2,7 +2,10 @@
 
 import FirebaseSetup, { isFirebaseMissing } from "@/components/admin/FirebaseSetup";
 import { useMemo, useState } from "react";
-import { AlertTriangle, Brush, FileText, Globe2, Radio, RefreshCw, Smartphone, Trash2 } from "lucide-react";
+import { AlertTriangle, Brush, FileText, Globe2, MapPinned, Radio, RefreshCw, Smartphone, Trash2 } from "lucide-react";
+import LiveMap from "./LiveMap";
+import { ProviderLogo } from "@/components/ip/shared";
+import { ispBrand } from "@/lib/isp";
 import { BarList, Button, Card, EmptyState, Flag, IconButton, PageHeader, SearchInput, Skeleton, StatCard, Table, TBody, THead, api, fmtNum, useAdminUI } from "@/components/admin/ui";
 import { DeviceIcon, LiveDot, PathLabel, cap, secondsAgo, splitLocale, useNow, usePoll, type OnlineUser } from "./bits";
 
@@ -47,7 +50,7 @@ export default function OnlineNow() {
     const s = q.trim().toLowerCase();
     const all = data?.online || [];
     if (!s) return all;
-    return all.filter((u) => `${u.path} ${u.city} ${u.countryCode} ${countryName(u.countryCode)} ${u.device} ${u.os} ${u.browser} ${u.locale}`.toLowerCase().includes(s));
+    return all.filter((u) => `${u.path} ${u.city} ${u.region || ""} ${u.countryCode} ${u.country || ""} ${countryName(u.countryCode)} ${u.isp || ""} ${u.device} ${u.os} ${u.browser} ${u.locale}`.toLowerCase().includes(s));
   }, [data, q]);
 
   const byPage = useMemo(() => {
@@ -140,9 +143,12 @@ export default function OnlineNow() {
         <StatCard label="On mobile" value={data ? `${data.count ? Math.round((mobile / data.count) * 100) : 0}%` : "–"} icon={Smartphone} tone="amber" loading={!data} hint={`${fmtNum(mobile)} phones & tablets`} />
       </div>
 
-      <div className="mt-4 grid gap-4 xl:grid-cols-3">
+      <Card className="mt-4" title="Live map" description="Where your visitors are right now (city level)" icon={MapPinned} bodyClassName="p-3 sm:p-4">
+        {!data ? <Skeleton className="aspect-[1600/640] w-full" /> : <LiveMap users={data.online} countryName={countryName} />}
+      </Card>
+
+      <div className="mt-4 grid gap-4">
         <Card
-          className="xl:col-span-2"
           title="Active visitors"
           description={data ? `${fmtNum(list.length)} of ${fmtNum(data.count)} shown` : undefined}
           bodyClassName=""
@@ -155,7 +161,7 @@ export default function OnlineNow() {
           }
         >
           <div className="border-b border-slate-100 px-4 py-3 dark:border-white/[0.06]">
-            <SearchInput value={q} onChange={setQ} placeholder="Filter by page, city, country, device…" className="max-w-sm" />
+            <SearchInput value={q} onChange={setQ} placeholder="Filter by country, city, provider, page, device…" className="max-w-sm" />
           </div>
           {error && !data ? (
             isFirebaseMissing(error) ? <div className="p-4"><FirebaseSetup compact /></div> : <EmptyState icon={AlertTriangle} title="Couldn’t load online visitors" description={error} action={<Button icon={RefreshCw} onClick={() => reload()}>Retry</Button>} />
@@ -180,6 +186,7 @@ export default function OnlineNow() {
                     <input type="checkbox" aria-label="Select all" checked={allChecked} onChange={toggleAll} className="h-4 w-4 rounded border-slate-300 text-brand-600 focus:ring-brand-500 dark:border-white/20 dark:bg-white/5" />
                   </th>
                   <th>Location</th>
+                  <th>Provider</th>
                   <th>Current page</th>
                   <th>Device</th>
                   <th>Last seen</th>
@@ -197,13 +204,23 @@ export default function OnlineNow() {
                         <input type="checkbox" aria-label={`Select ${u.city || u.id}`} checked={selected.has(u.id)} onChange={() => toggle(u.id)} className="h-4 w-4 rounded border-slate-300 text-brand-600 focus:ring-brand-500 dark:border-white/20 dark:bg-white/5" />
                       </td>
                       <td className="whitespace-nowrap">
-                        <span className="flex items-center gap-2.5">
-                          <Flag cc={u.countryCode} />
+                        <span className="flex items-center gap-3">
+                          <Flag cc={u.countryCode} className="!h-[18px] !w-6 rounded-[3px] shadow-sm" />
                           <span>
-                            <span className="block text-sm font-medium text-slate-900 dark:text-white">{u.city || "Unknown city"}</span>
-                            <span className="block text-xs text-slate-400">{countryName(u.countryCode)}</span>
+                            <span className="block text-sm font-semibold text-slate-900 dark:text-white">{u.country || (u.countryCode ? countryName(u.countryCode) : "Locating…")}</span>
+                            <span className="block text-xs text-slate-500 dark:text-slate-400">{[u.city, u.region && u.region !== u.city ? u.region : ""].filter(Boolean).join(", ") || "—"}</span>
                           </span>
                         </span>
+                      </td>
+                      <td className="whitespace-nowrap">
+                        {u.isp ? (
+                          <span className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-200">
+                            <ProviderLogo brand={ispBrand(u.isp)} size={20} />
+                            <span className="max-w-[140px] truncate">{u.isp}</span>
+                          </span>
+                        ) : (
+                          <span className="text-sm text-slate-400">—</span>
+                        )}
                       </td>
                       <td>
                         <PathLabel path={u.path} locale={u.locale} max="max-w-[150px] sm:max-w-[200px] 2xl:max-w-[320px]" />
@@ -236,7 +253,7 @@ export default function OnlineNow() {
           )}
         </Card>
 
-        <div className="space-y-4">
+        <div className="grid gap-4 md:grid-cols-2">
           <Card title="By page" icon={FileText}>
             {!data ? (
               <Skeleton className="h-32" />

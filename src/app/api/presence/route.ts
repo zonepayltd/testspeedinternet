@@ -1,6 +1,8 @@
 import { adminDb, adminConfigured } from "@/lib/firebaseAdmin";
 import { FieldValue } from "firebase-admin/firestore";
 import { parseUA } from "@/lib/ua";
+import { geoForRequest } from "@/lib/geo";
+import { ispBrand } from "@/lib/isp";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -30,8 +32,7 @@ export async function POST(request: Request) {
     const ua = request.headers.get("user-agent") || "";
     const { device, os, browser } = parseUA(ua);
     if (device === "bot") return Response.json({ ok: true });
-    const countryCode = request.headers.get("cf-ipcountry") || request.headers.get("x-vercel-ip-country") || "";
-    const city = decodeURIComponent(request.headers.get("x-vercel-ip-city") || "");
+    const geo = await geoForRequest(request);
     const data: Record<string, unknown> = {
       lastSeen: FieldValue.serverTimestamp(),
       path,
@@ -40,8 +41,15 @@ export async function POST(request: Request) {
       os,
       browser,
     };
-    if (countryCode) data.countryCode = countryCode;
-    if (city) data.city = city;
+    if (geo?.countryCode) data.countryCode = geo.countryCode;
+    if (geo?.country) data.country = geo.country;
+    if (geo?.city) data.city = geo.city;
+    if (geo?.region) data.region = geo.region;
+    if (geo?.isp) data.isp = ispBrand(geo.isp).name;
+    if (geo?.lat != null && geo?.lon != null) {
+      data.lat = Math.round(geo.lat * 100) / 100; // ~1 km — city level, not exact address
+      data.lon = Math.round(geo.lon * 100) / 100;
+    }
     await ref.set(data, { merge: true });
     return Response.json({ ok: true });
   } catch {

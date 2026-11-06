@@ -16,6 +16,11 @@ export type OnlineUser = {
   browser: string;
   countryCode: string;
   city: string;
+  country?: string;
+  region?: string;
+  isp?: string;
+  lat?: number | null;
+  lon?: number | null;
 };
 
 export const RANGE_OPTIONS = [

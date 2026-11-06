@@ -202,6 +202,11 @@ export async function GET(request: Request) {
         browser: String(x.browser || ""),
         countryCode: String(x.countryCode || ""),
         city: String(x.city || ""),
+        country: String(x.country || ""),
+        region: String(x.region || ""),
+        isp: String(x.isp || ""),
+        lat: typeof x.lat === "number" ? x.lat : null,
+        lon: typeof x.lon === "number" ? x.lon : null,
       };
     });
 
