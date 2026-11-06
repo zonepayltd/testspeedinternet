@@ -833,96 +833,82 @@ function ConnectionBar({
     }
   };
 
-  const label = "block text-[10.5px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500 [html[lang=ar]_&]:normal-case [html[lang=ar]_&]:tracking-normal";
-  const val = "block truncate text-[13px] font-semibold text-slate-800 dark:text-slate-100 sm:text-sm";
-  const skel = <span className="mt-1 block h-4 w-24 animate-pulse rounded bg-slate-200 dark:bg-white/10" />;
+  const skel = <span className="inline-block h-3.5 w-20 animate-pulse rounded bg-slate-200 align-middle dark:bg-white/10" />;
+  // One slim bar on desktop; wraps into short centred lines on phones.
+  const item = "flex min-w-0 items-center gap-1.5 px-2.5 py-1 sm:px-3";
+  const sep = "sm:border-s sm:border-slate-200/80 sm:dark:border-white/10";
 
   return (
-    <dl className="mx-auto grid w-full max-w-3xl grid-cols-2 overflow-hidden rounded-2xl border border-slate-200/80 bg-white/70 text-start shadow-sm shadow-slate-900/[0.04] backdrop-blur-md dark:border-white/[0.08] dark:bg-white/[0.04] dark:shadow-none sm:grid-cols-4 sm:divide-x sm:divide-slate-200/80 sm:rtl:divide-x-reverse sm:dark:divide-white/[0.08]">
+    <dl className="mx-auto flex w-fit max-w-full flex-wrap items-center justify-center gap-y-0.5 rounded-2xl border border-slate-200/80 bg-white/75 px-1.5 py-1 text-[13px] text-slate-600 shadow-sm shadow-slate-900/[0.04] backdrop-blur-md dark:border-white/10 dark:bg-white/[0.05] dark:text-slate-300 dark:shadow-none sm:rounded-full sm:py-1.5">
       {/* Provider */}
-      <div className="col-span-2 flex min-w-0 items-center gap-3 border-b border-slate-200/80 px-4 py-3 dark:border-white/[0.08] sm:col-span-1 sm:border-b-0">
+      <div className={item}>
+        <dt className="sr-only">{t.conn.provider}</dt>
         {loading ? (
-          <span className="h-9 w-9 shrink-0 animate-pulse rounded-lg bg-slate-200 dark:bg-white/10" />
+          <span className="h-5 w-5 shrink-0 animate-pulse rounded-md bg-slate-200 dark:bg-white/10" />
         ) : ok && brand.name ? (
-          <ProviderLogo brand={brand} size={36} className="rounded-lg" />
+          <ProviderLogo brand={brand} size={20} />
         ) : (
-          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-brand-50 text-brand-600 dark:bg-brand-400/10 dark:text-brand-300">
-            <Wifi className="h-4 w-4" aria-hidden="true" />
-          </span>
+          <Wifi className="h-4 w-4 shrink-0 text-brand-500" aria-hidden="true" />
         )}
-        <div className="min-w-0">
-          <dt className={label}>{t.conn.provider}</dt>
-          <dd className={val} title={info?.isp || undefined}>
-            {loading ? skel : ok ? brand.name || "–" : t.conn.unavailable}
-          </dd>
-        </div>
+        <dd className="max-w-[11rem] truncate font-semibold text-slate-900 dark:text-white" title={info?.isp || undefined}>
+          {loading ? skel : ok ? brand.name || "–" : t.conn.unavailable}
+        </dd>
       </div>
 
       {/* IP address */}
-      <div className="flex min-w-0 items-center gap-2 border-e border-slate-200/80 px-4 py-3 dark:border-white/[0.08] sm:border-e-0">
-        <div className="min-w-0 flex-1">
-          <dt className={label}>{t.conn.ip}</dt>
-          <dd dir="ltr" className={`${val} font-mono text-[12.5px] sm:text-[13px]`}>
-            {loading ? skel : ok && info?.ip ? info.ip : "–"}
+      {(loading || (ok && info?.ip)) && (
+        <div className={`${item} ${sep}`}>
+          <dt className="text-xs font-medium text-slate-400 dark:text-slate-500">IP</dt>
+          <dd dir="ltr" className="font-mono text-[12.5px] font-medium text-slate-800 dark:text-slate-100">
+            {loading ? skel : info!.ip}
           </dd>
+          {ok && info?.ip && (
+            <button
+              type="button"
+              onClick={copyIp}
+              aria-label={copied ? t.copied : `${t.copy} IP`}
+              title={copied ? t.copied : t.copy}
+              className="-me-1 flex h-6 w-6 items-center justify-center rounded-md text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-white/10 dark:hover:text-white"
+            >
+              {copied ? <Check className="h-3.5 w-3.5 text-emerald-500" aria-hidden="true" /> : <Copy className="h-3.5 w-3.5" aria-hidden="true" />}
+            </button>
+          )}
         </div>
-        {ok && info?.ip && (
-          <button
-            type="button"
-            onClick={copyIp}
-            aria-label={copied ? t.copied : `${t.copy} IP`}
-            title={copied ? t.copied : t.copy}
-            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-white/10 dark:hover:text-white"
-          >
-            {copied ? <Check className="h-3.5 w-3.5 text-emerald-500" aria-hidden="true" /> : <Copy className="h-3.5 w-3.5" aria-hidden="true" />}
-          </button>
-        )}
-      </div>
+      )}
 
       {/* Location */}
-      <div className="flex min-w-0 items-center gap-2 px-4 py-3">
-        <div className="min-w-0">
-          <dt className={label}>{t.conn.location}</dt>
-          <dd className={`${val} flex items-center gap-1.5`}>
-            {loading ? (
-              skel
-            ) : place ? (
-              <>
-                {flag ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={flag}
-                    srcSet={flag2x ? `${flag2x} 2x` : undefined}
-                    width={18}
-                    height={13}
-                    alt=""
-                    className="h-[13px] w-[18px] shrink-0 rounded-[2px] object-cover ring-1 ring-black/5 dark:ring-white/10"
-                  />
-                ) : (
-                  <MapPin className="h-3.5 w-3.5 shrink-0 text-brand-500" aria-hidden="true" />
-                )}
-                <bdi className="truncate">{place}</bdi>
-              </>
-            ) : (
-              "–"
-            )}
+      {place && (
+        <div className={`${item} ${sep}`}>
+          <dt className="sr-only">{t.conn.location}</dt>
+          {flag ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={flag}
+              srcSet={flag2x ? `${flag2x} 2x` : undefined}
+              width={18}
+              height={13}
+              alt=""
+              className="h-[13px] w-[18px] shrink-0 rounded-[2px] object-cover ring-1 ring-black/5 dark:ring-white/10"
+            />
+          ) : (
+            <MapPin className="h-3.5 w-3.5 shrink-0 text-brand-500" aria-hidden="true" />
+          )}
+          <dd className="truncate font-medium text-slate-800 dark:text-slate-100">
+            <bdi>{place}</bdi>
           </dd>
         </div>
-      </div>
+      )}
 
       {/* Test server */}
-      <div className="col-span-2 flex min-w-0 items-center gap-2 border-t border-slate-200/80 px-4 py-3 dark:border-white/[0.08] sm:col-span-1 sm:border-t-0">
-        <div className="min-w-0">
-          <dt className={label}>{t.conn.server}</dt>
-          <dd className={`${val} flex items-center gap-1.5`}>
-            <span className="relative flex h-2 w-2 shrink-0">
-              <span className="absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-60 motion-safe:animate-ping" />
-              <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
-            </span>
-            <bdi className="truncate">{server || t.conn.auto}</bdi>
-            {server && server !== colo && <span className="text-xs font-medium text-slate-400 dark:text-slate-500">{colo}</span>}
-          </dd>
-        </div>
+      <div className={`${item} ${sep}`} title={colo ? `${t.conn.server}: ${server} (${colo})` : t.conn.server}>
+        <dt className="sr-only">{t.conn.server}</dt>
+        <span className="relative flex h-2 w-2 shrink-0" aria-hidden="true">
+          <span className="absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-60 motion-safe:animate-ping" />
+          <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
+        </span>
+        <dd className="truncate font-medium text-slate-800 dark:text-slate-100">
+          <bdi>{server || t.conn.auto}</bdi>
+        </dd>
       </div>
     </dl>
   );
