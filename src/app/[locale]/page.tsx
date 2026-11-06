@@ -96,6 +96,7 @@ export default async function HomePage({ params }: Props) {
         <div id="speed-test" className="mt-8 w-full max-w-5xl scroll-mt-24 sm:mt-10">
           <SpeedTest />
         </div>
+        <AdSlot placement="afterResults" className="mt-6 w-full max-w-4xl" />
       </PageHero>
 
       {/* Trust strip */}

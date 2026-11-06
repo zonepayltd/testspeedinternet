@@ -1,15 +1,27 @@
 import { adminConfigured } from "@/lib/firebaseAdmin";
-import { getSiteConfig, saveSiteConfig } from "@/lib/siteConfig";
+import { getSiteConfig, saveSiteConfig, type SiteConfig } from "@/lib/siteConfig";
 import { requireAdmin, unauthorized } from "@/lib/requireAdmin";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-export async function GET() {
+// GET            → { ok, config, env }
+// GET ?check=1   → { ok, checks } — fetches the live home page + /ads.txt and
+//                  reports whether each configured tag is actually served.
+export async function GET(request: Request) {
   if (!(await requireAdmin())) return unauthorized();
   try {
     const config = await getSiteConfig();
-    return Response.json({ ok: true, config });
+    if (new URL(request.url).searchParams.get("check")) return Response.json({ ok: true, checks: await liveChecks(request, config) });
+    return Response.json({
+      ok: true,
+      config,
+      env: {
+        firebase: adminConfigured,
+        turnstileSiteKeyFromEnv: Boolean(process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY),
+        turnstileSecretFromEnv: Boolean(process.env.TURNSTILE_SECRET_KEY),
+      },
+    });
   } catch (err) {
     return Response.json(
       { ok: false, error: err instanceof Error ? err.message : "Failed to load settings" },
@@ -68,4 +80,34 @@ export async function PUT(request: Request) {
       { status: 200 }
     );
   }
+}
+
+type Check = { configured: boolean; found: boolean | null };
+
+async function liveChecks(request: Request, c: SiteConfig): Promise<{ fetchedFrom: string; error?: string; [k: string]: Check | string | undefined }> {
+  const origin = new URL(request.url).origin;
+  let html = "";
+  let adsTxt = "";
+  let error: string | undefined;
+  try {
+    const [h, a] = await Promise.all([
+      fetch(`${origin}/`, { cache: "no-store", signal: AbortSignal.timeout(8000) }).then((r) => r.text()),
+      fetch(`${origin}/ads.txt`, { cache: "no-store", signal: AbortSignal.timeout(8000) }).then((r) => r.text()),
+    ]);
+    html = h;
+    adsTxt = a;
+  } catch (err) {
+    error = err instanceof Error ? err.message : "Could not fetch the site";
+  }
+  const has = (v: string) => (v ? (error ? null : html.includes(v)) : null);
+  const pub = c.adsenseClient.replace(/^ca-/, "");
+  return {
+    fetchedFrom: origin,
+    ...(error ? { error } : {}),
+    google: { configured: Boolean(c.googleVerification), found: has(c.googleVerification) },
+    bing: { configured: Boolean(c.bingVerification), found: has(c.bingVerification) },
+    analytics: { configured: Boolean(c.gaMeasurementId), found: has(c.gaMeasurementId) },
+    adsense: { configured: Boolean(c.adsenseClient), found: has(c.adsenseClient) },
+    adsTxt: { configured: Boolean(pub), found: pub ? (error ? null : adsTxt.includes(pub)) : null },
+  };
 }

@@ -52,6 +52,18 @@ import {
 import { addToHistory, clearHistory, loadHistory, type HistoryEntry } from "./speedtest/history";
 import { ProviderLogo } from "./ip/shared";
 import { ispBrand } from "@/lib/isp";
+import { visitorId } from "./Tracker";
+
+/** Report speed-test usage to the admin dashboard (fire-and-forget). */
+function reportTest(data: Record<string, unknown>) {
+  const body = JSON.stringify(data);
+  try {
+    if (navigator.sendBeacon && navigator.sendBeacon("/api/test-event", new Blob([body], { type: "application/json" }))) return;
+  } catch {
+    /* fall through */
+  }
+  fetch("/api/test-event", { method: "POST", headers: { "Content-Type": "application/json" }, body, keepalive: true }).catch(() => {});
+}
 
 type Mode = "full" | "download" | "upload" | "ping";
 type Phase = "idle" | "ping" | "download" | "upload" | "done" | "error" | "cancelled";
@@ -164,6 +176,16 @@ export default function SpeedTest({ mode = "full" }: { mode?: Mode }) {
 
   const animated = useEased(live, reduce);
 
+  // Latest connection info / server for analytics without re-creating `run`.
+  const infoRef = useRef<ConnInfo | null>(null);
+  const coloRef = useRef("");
+  useEffect(() => {
+    infoRef.current = info;
+  }, [info]);
+  useEffect(() => {
+    coloRef.current = colo;
+  }, [colo]);
+
   // Grow the dial while testing so the arc stays in a useful range.
   useEffect(() => {
     if (!growingRef.current) return;
@@ -266,6 +288,25 @@ export default function SpeedTest({ mode = "full" }: { mode?: Mode }) {
     const r: Results = { ...EMPTY };
     const onColo = (c: string) => setColo(c);
 
+    const testId =
+      (typeof crypto !== "undefined" && crypto.randomUUID?.()) || `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+    const startedAt = performance.now();
+    const ci = infoRef.current;
+    reportTest({
+      testId,
+      status: "started",
+      visitorId: visitorId(),
+      mode,
+      path: window.location.pathname,
+      locale,
+      isp: ci?.isp || "",
+      ispBrand: ci?.ok ? ispBrand(ci.isp, ci.org, ci.as).name : "",
+      ip: ci?.ip || "",
+      countryCode: ci?.countryCode || "",
+      city: ci?.city || "",
+      server: coloRef.current,
+    });
+
     try {
       if (wantPing) {
         setPhase("ping");
@@ -329,16 +370,19 @@ export default function SpeedTest({ mode = "full" }: { mode?: Mode }) {
       setLive(0);
       setPhase("done");
       setHistory(addToHistory({ t: Date.now(), mode, ...r }));
+      reportTest({ testId, status: "completed", ...r, durationMs: performance.now() - startedAt, server: coloRef.current });
       setAnnounce(`${t.live.finished} ${summaryLines(r, t, locale).join(". ")}`);
     } catch (e) {
       if (runRef.current !== ctrl) return; // a newer run (or unmount) took over
       growingRef.current = false;
       setLive(0);
       if (e instanceof AbortedError || signal.aborted) {
+        reportTest({ testId, status: "cancelled", ...r, durationMs: performance.now() - startedAt });
         setPhase("cancelled");
         setAnnounce(t.live.stopped);
       } else {
         const code: ErrorCode = e instanceof SpeedTestError ? e.code : "generic";
+        reportTest({ testId, status: "error", error: code, ...r, durationMs: performance.now() - startedAt });
         setError(code);
         setPhase("error");
         setAnnounce(t.errors[code]);

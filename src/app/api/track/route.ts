@@ -1,5 +1,6 @@
 import { adminDb, adminConfigured } from "@/lib/firebaseAdmin";
 import { FieldValue } from "firebase-admin/firestore";
+import { parseUA } from "@/lib/ua";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -57,6 +58,8 @@ export async function POST(request: Request) {
 
   const source = sourceFromReferrer(referrer, selfHost);
   const ua = request.headers.get("user-agent")?.slice(0, 300) || "";
+  // Don't count search-engine crawlers and headless bots as visitors.
+  if (parseUA(ua).device === "bot") return Response.json({ ok: true });
 
   // Visitor IP + geo. Country code comes free from Cloudflare/Vercel headers;
   // otherwise (and on localhost) we resolve it via ip-api.

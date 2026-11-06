@@ -1,24 +1,14 @@
 "use client";
 
 import { createContext, useContext, useEffect, useState } from "react";
-import type { Placement, Scope, CustomFormat } from "@/lib/adsModel";
+import type { PublicAd as ModelPublicAd } from "@/lib/adsModel";
 
-export type PublicAd = {
-  id: string;
-  type: "adsense" | "custom";
-  placement: Placement;
-  scope: Scope;
-  pathPrefix: string;
-  adsenseSlot: string;
-  customFormat: CustomFormat;
-  image: string;
-  title: string;
-  description: string;
-  link: string;
-};
+export type PublicAd = ModelPublicAd;
 
 export type AdsState = {
+  /** master switch from Settings ("Show ads") */
   enabled: boolean;
+  /** AdSense publisher id from Settings (ca-pub-…) */
   client: string;
   personalized: boolean;
   ads: PublicAd[];

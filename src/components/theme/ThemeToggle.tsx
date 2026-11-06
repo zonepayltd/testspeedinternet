@@ -16,7 +16,7 @@ function apply(mode: Mode) {
 }
 
 /** Inline script for <head>: applies the saved theme before first paint (no flash). */
-export const themeInitScript = `(function(){try{if(location.pathname.indexOf('/admin')===0)return;var m=localStorage.getItem('${KEY}')||'system';var d=m==='dark'||(m==='system'&&matchMedia('(prefers-color-scheme: dark)').matches);var e=document.documentElement;if(d)e.classList.add('dark');e.style.colorScheme=d?'dark':'light';}catch(e){}})();`;
+export const themeInitScript = `(function(){try{var m=localStorage.getItem('${KEY}')||'system';var d=m==='dark'||(m==='system'&&matchMedia('(prefers-color-scheme: dark)').matches);var e=document.documentElement;if(d)e.classList.add('dark');e.style.colorScheme=d?'dark':'light';}catch(e){}})();`;
 
 export default function ThemeToggle({ className = "" }: { className?: string }) {
   const t = pick(commonMessages, useLocale()).theme;

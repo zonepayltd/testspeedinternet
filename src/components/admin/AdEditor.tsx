@@ -1,19 +1,28 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, ArrowRight, Save, Trash2, Loader2, Megaphone, ImageIcon, Eye, MousePointerClick } from "lucide-react";
-import CustomAdCard from "@/components/ads/CustomAdCard";
+import { AlertTriangle, ArrowLeft, Copy, Eye, Megaphone, RefreshCw, Save, ShieldCheck, Trash2 } from "lucide-react";
+import { Button, Card, Select, Skeleton, Toggle, Segmented, inputCls, api, useAdminUI, fmtDateTime } from "@/components/admin/ui";
 import {
+  AD_TYPES,
+  DEVICES,
   PLACEMENTS,
   SCOPES,
-  CUSTOM_FORMATS,
+  adStatus,
+  validateAd,
+  type Ad,
   type AdType,
+  type Device,
   type Placement,
   type Scope,
-  type CustomFormat,
 } from "@/lib/adsModel";
+import { LOCALES, LOCALE_META, type Locale } from "@/i18n/config";
+import AdPreview from "./ads/AdPreview";
+import AdStats from "./ads/AdStats";
+import ImageUpload from "./ads/ImageUpload";
+import { StatusBadge, TYPE_META, fromLocalInput, toLocalInput } from "./ads/shared";
 
 type Form = {
   name: string;
@@ -21,294 +30,552 @@ type Form = {
   placement: Placement;
   scope: Scope;
   pathPrefix: string;
+  locales: Locale[];
+  device: Device;
+  startAt: number;
+  endAt: number;
   enabled: boolean;
+  order: string;
   adsenseSlot: string;
-  customFormat: CustomFormat;
   image: string;
+  alt: string;
   title: string;
   description: string;
+  buttonText: string;
   link: string;
-  order: string;
+  html: string;
+  width: string;
+  height: string;
 };
-
-type Stats = { impressions: number; clicks: number; impByCountry: Record<string, number> };
 
 const EMPTY: Form = {
   name: "",
-  type: "adsense",
-  placement: "top",
+  type: "image",
+  placement: "inContent",
   scope: "all",
   pathPrefix: "",
+  locales: [],
+  device: "all",
+  startAt: 0,
+  endAt: 0,
   enabled: true,
+  order: "0",
   adsenseSlot: "",
-  customFormat: "card",
   image: "",
+  alt: "",
   title: "",
   description: "",
+  buttonText: "",
   link: "",
-  order: "0",
+  html: "",
+  width: "0",
+  height: "0",
 };
 
-const flag = (cc: string) => (cc.length === 2 ? `https://flagcdn.com/20x15/${cc.toLowerCase()}.png` : "");
+const SIZE_PRESETS: { label: string; w: number; h: number }[] = [
+  { label: "Responsive", w: 0, h: 0 },
+  { label: "728×90", w: 728, h: 90 },
+  { label: "970×90", w: 970, h: 90 },
+  { label: "468×60", w: 468, h: 60 },
+  { label: "300×250", w: 300, h: 250 },
+  { label: "320×50", w: 320, h: 50 },
+  { label: "320×100", w: 320, h: 100 },
+  { label: "160×600", w: 160, h: 600 },
+  { label: "300×600", w: 300, h: 600 },
+];
+
+const fromAd = (a: Ad): Form => ({
+  name: a.name,
+  type: a.type,
+  placement: a.placement,
+  scope: a.scope,
+  pathPrefix: a.pathPrefix,
+  locales: a.locales,
+  device: a.device,
+  startAt: a.startAt,
+  endAt: a.endAt,
+  enabled: a.enabled,
+  order: String(a.order ?? 0),
+  adsenseSlot: a.adsenseSlot,
+  image: a.image,
+  alt: a.alt,
+  title: a.title,
+  description: a.description,
+  buttonText: a.buttonText,
+  link: a.link,
+  html: a.html,
+  width: String(a.width || 0),
+  height: String(a.height || 0),
+});
+
+const toPayload = (f: Form) => ({
+  ...f,
+  order: Number(f.order) || 0,
+  width: Math.max(0, Number(f.width) || 0),
+  height: Math.max(0, Number(f.height) || 0),
+});
+
+function useDebounced<T>(v: T, ms: number) {
+  const [d, setD] = useState(v);
+  useEffect(() => {
+    const t = setTimeout(() => setD(v), ms);
+    return () => clearTimeout(t);
+  }, [v, ms]);
+  return d;
+}
 
 export default function AdEditor({ adId }: { adId?: string }) {
   const router = useRouter();
+  const { confirm, toast } = useAdminUI();
   const [form, setForm] = useState<Form>(EMPTY);
-  const [stats, setStats] = useState<Stats | null>(null);
+  const [ad, setAd] = useState<Ad | null>(null);
   const [loading, setLoading] = useState(Boolean(adId));
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [resetting, setResetting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [touched, setTouched] = useState(false);
+  const [cfg, setCfg] = useState<{ adsEnabled: boolean; adsenseClient: string } | null>(null);
 
-  useEffect(() => {
+  const load = useCallback(() => {
     if (!adId) return;
-    fetch(`/api/admin/ads/${adId}`, { cache: "no-store" })
-      .then((r) => r.json())
+    setLoading(true);
+    setLoadError(null);
+    api<{ ad: Ad }>(`/api/admin/ads/${adId}`)
       .then((d) => {
-        if (d.ok) {
-          const a = d.ad;
-          setForm({
-            name: a.name,
-            type: a.type,
-            placement: a.placement,
-            scope: a.scope,
-            pathPrefix: a.pathPrefix,
-            enabled: a.enabled,
-            adsenseSlot: a.adsenseSlot,
-            customFormat: a.customFormat || "card",
-            image: a.image,
-            title: a.title,
-            description: a.description || "",
-            link: a.link,
-            order: String(a.order ?? 0),
-          });
-          setStats({ impressions: a.impressions || 0, clicks: a.clicks || 0, impByCountry: a.impByCountry || {} });
-        } else setError(d.error || "Could not load ad");
+        setAd(d.ad);
+        setForm(fromAd(d.ad));
       })
+      .catch((e) => setLoadError((e as Error).message))
       .finally(() => setLoading(false));
   }, [adId]);
 
+  useEffect(load, [load]);
+  useEffect(() => {
+    fetch("/api/config", { cache: "no-store" })
+      .then((r) => r.json())
+      .then((c) => setCfg({ adsEnabled: Boolean(c?.adsEnabled), adsenseClient: c?.adsenseClient || "" }))
+      .catch(() => {});
+  }, []);
+
   const set = <K extends keyof Form>(k: K, v: Form[K]) => setForm((f) => ({ ...f, [k]: v }));
+  const payload = toPayload(form);
+  const validation = validateAd(payload);
+  const status = adStatus(payload);
+
+  // Debounce the preview for code edits so pasted scripts don't re-run on every keystroke.
+  const previewHtml = useDebounced(form.html, 600);
+  const previewAd = useMemo(
+    () => ({ ...payload, html: previewHtml }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [form.type, form.adsenseSlot, form.image, form.alt, form.title, form.description, form.buttonText, form.link, previewHtml, form.width, form.height],
+  );
 
   const save = async () => {
-    setError(null);
-    if (!form.name.trim()) return setError("Please give the ad a name.");
-    if (form.type === "adsense" && !form.adsenseSlot.trim()) return setError("AdSense ads need a slot ID.");
-    if (form.type === "custom") {
-      if (!form.link.trim()) return setError("Custom ads need a link.");
-      if (form.customFormat !== "text" && !form.image.trim()) return setError("This format needs an image.");
-      if (form.customFormat !== "image" && !form.title.trim()) return setError("This format needs a title.");
+    setTouched(true);
+    if (validation) {
+      setError(validation);
+      return;
     }
-
+    setError(null);
     setSaving(true);
-    const payload = { ...form, order: Number(form.order) || 0 };
     try {
-      const res = await fetch(adId ? `/api/admin/ads/${adId}` : "/api/admin/ads", {
-        method: adId ? "PUT" : "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-      const d = await res.json();
-      if (!d.ok) {
-        setError(d.error || "Save failed");
-        setSaving(false);
-        return;
+      if (adId) {
+        await api(`/api/admin/ads/${adId}`, { method: "PUT", json: payload });
+        toast("Ad saved");
+        load();
+      } else {
+        const r = await api<{ id: string }>("/api/admin/ads", { method: "POST", json: payload });
+        toast("Ad created");
+        router.replace(`/admin/ads/${r.id}`);
       }
-      router.push("/admin/ads");
-      router.refresh();
-    } catch {
-      setError("Network error");
+    } catch (e) {
+      setError((e as Error).message);
+      toast((e as Error).message, "error");
+    } finally {
       setSaving(false);
     }
   };
 
   const remove = async () => {
-    if (!adId || !confirm("Delete this ad?")) return;
-    await fetch(`/api/admin/ads/${adId}`, { method: "DELETE" });
-    router.push("/admin/ads");
-    router.refresh();
+    if (!adId) return;
+    if (!(await confirm({ title: `Delete “${form.name || "this ad"}”?`, message: "The ad and its statistics are removed permanently.", confirmLabel: "Delete ad" }))) return;
+    let deleteImage = false;
+    if (ad?.imageId) {
+      deleteImage = await confirm({
+        title: "Also delete the uploaded image?",
+        message: "The image is removed from storage unless another ad still uses it. Choose Cancel to keep it in the library.",
+        confirmLabel: "Delete image",
+      });
+    }
+    try {
+      const r = await api<{ imagesDeleted: number }>(`/api/admin/ads/${adId}${deleteImage ? "?deleteImage=1" : ""}`, { method: "DELETE" });
+      toast(r.imagesDeleted ? "Ad and image deleted" : "Ad deleted");
+      router.push("/admin/ads");
+    } catch (e) {
+      toast((e as Error).message, "error");
+    }
   };
 
-  if (loading) return <p className="text-sm text-slate-400">Loading…</p>;
+  const duplicate = async () => {
+    if (!adId) return;
+    try {
+      const r = await api<{ id: string }>("/api/admin/ads", { method: "POST", json: { duplicateOf: adId } });
+      toast("Copy created (disabled)");
+      router.push(`/admin/ads/${r.id}`);
+    } catch (e) {
+      toast((e as Error).message, "error");
+    }
+  };
 
-  const input =
-    "w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm text-slate-900 focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-500/30";
+  const resetStats = async () => {
+    if (!adId) return;
+    if (!(await confirm({ title: "Reset statistics?", message: "Impressions, clicks and country/day breakdowns for this ad go back to zero.", confirmLabel: "Reset stats" }))) return;
+    setResetting(true);
+    try {
+      await api(`/api/admin/ads/${adId}`, { method: "PATCH", json: { resetStats: true } });
+      toast("Statistics reset");
+      load();
+    } catch (e) {
+      toast((e as Error).message, "error");
+    } finally {
+      setResetting(false);
+    }
+  };
 
-  const ctr = stats && stats.impressions ? ((stats.clicks / stats.impressions) * 100).toFixed(1) : "0.0";
-  const topCountries = stats
-    ? Object.entries(stats.impByCountry).sort((a, b) => b[1] - a[1]).slice(0, 6)
-    : [];
+  if (loading) {
+    return (
+      <div className="grid gap-6 lg:grid-cols-12">
+        <div className="space-y-4 lg:col-span-7">
+          <Skeleton className="h-8 w-48" />
+          <Skeleton className="h-48 w-full" />
+          <Skeleton className="h-64 w-full" />
+        </div>
+        <Skeleton className="h-96 w-full lg:col-span-5" />
+      </div>
+    );
+  }
+  if (loadError) {
+    return (
+      <div className="mx-auto max-w-md rounded-2xl border border-rose-200 bg-rose-50 p-6 text-center dark:border-rose-400/20 dark:bg-rose-400/10">
+        <AlertTriangle className="mx-auto h-6 w-6 text-rose-500" />
+        <p className="mt-2 text-sm font-medium text-rose-700 dark:text-rose-300">{loadError}</p>
+        <div className="mt-4 flex justify-center gap-2">
+          <Link href="/admin/ads" className="text-sm font-medium text-slate-600 underline dark:text-slate-300">
+            Back to ads
+          </Link>
+          <Button size="sm" icon={RefreshCw} onClick={load}>
+            Retry
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  const placementMeta = PLACEMENTS.find((p) => p.value === form.placement);
+  const showImage = form.type === "image" || form.type === "card";
+  const showText = form.type === "card" || form.type === "text";
+  const showLink = showImage || showText;
+  const fieldErr = (cond: boolean) => (touched && cond ? "border-rose-300 focus:border-rose-500 focus:ring-rose-500/10 dark:border-rose-400/40" : "");
 
   return (
-    <div className="mx-auto max-w-2xl">
-      <Link href="/admin/ads" className="inline-flex items-center gap-1.5 text-sm font-medium text-slate-500 hover:text-slate-800">
-        <ArrowLeft className="h-4 w-4" /> Back to ads
+    <div className="pb-24 lg:pb-0">
+      <Link href="/admin/ads" className="inline-flex items-center gap-1.5 text-sm font-medium text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white">
+        <ArrowLeft className="h-4 w-4" /> All ads
       </Link>
-      <h1 className="mt-4 text-2xl font-extrabold tracking-tight text-slate-900">{adId ? "Edit ad" : "New ad"}</h1>
 
-      {/* Stats */}
-      {adId && stats && (
-        <div className="mt-5 grid grid-cols-3 gap-3">
-          <StatBox icon={<Eye className="h-4 w-4" />} label="Impressions" value={stats.impressions} />
-          <StatBox icon={<MousePointerClick className="h-4 w-4" />} label="Clicks" value={stats.clicks} />
-          <StatBox icon={<ArrowRight className="h-4 w-4" />} label="CTR" value={`${ctr}%`} />
+      <div className="mb-6 mt-3 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2">
+            <h1 className="truncate text-2xl font-bold tracking-tight text-slate-900 dark:text-white">{adId ? form.name || "Edit ad" : "New ad"}</h1>
+            <StatusBadge status={status} />
+          </div>
+          <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+            {adId && ad ? `Last updated ${fmtDateTime(ad.updatedAt)}` : "Create an AdSense, image, card, text or script ad and choose where it shows."}
+          </p>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          {adId && (
+            <>
+              <Button icon={Copy} onClick={duplicate}>
+                Duplicate
+              </Button>
+              <Button variant="danger-ghost" icon={Trash2} onClick={remove}>
+                Delete
+              </Button>
+            </>
+          )}
+          <Button variant="primary" icon={Save} onClick={save} loading={saving} className="hidden lg:inline-flex">
+            {adId ? "Save changes" : "Create ad"}
+          </Button>
+        </div>
+      </div>
+
+      {cfg && !cfg.adsEnabled && (
+        <div className="mb-5 flex items-start gap-2.5 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-400/20 dark:bg-amber-400/10 dark:text-amber-200">
+          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+          <span>
+            Ads are switched off for the whole site. Turn on <strong>Show ads</strong> in{" "}
+            <Link href="/admin/settings" className="font-semibold underline">
+              Settings
+            </Link>{" "}
+            to display them.
+          </span>
         </div>
       )}
-      {adId && topCountries.length > 0 && (
-        <div className="mt-3 rounded-xl border border-slate-200 bg-white p-4">
-          <p className="text-xs font-bold uppercase tracking-wider text-slate-400">Impressions by country</p>
-          <div className="mt-2 flex flex-wrap gap-3">
-            {topCountries.map(([cc, n]) => (
-              <span key={cc} className="inline-flex items-center gap-1.5 text-sm text-slate-700">
-                {flag(cc) && (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={flag(cc)} width={18} height={13} alt={cc} className="h-3 w-[18px] rounded-[2px] object-cover ring-1 ring-black/10" />
-                )}
-                {cc || "??"} · <span className="font-semibold">{n}</span>
-              </span>
-            ))}
-          </div>
+
+      {error && (
+        <div role="alert" className="mb-5 flex items-center gap-2 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-700 dark:border-rose-400/20 dark:bg-rose-400/10 dark:text-rose-300">
+          <AlertTriangle className="h-4 w-4 shrink-0" />
+          {error}
         </div>
       )}
 
-      {error && <div className="mt-4 rounded-xl border border-red-200 bg-red-50 px-3.5 py-2.5 text-sm font-medium text-red-600">{error}</div>}
-
-      <div className="mt-6 space-y-4">
-        <Field label="Name (internal)">
-          <input className={input} value={form.name} onChange={(e) => set("name", e.target.value)} placeholder="Home top banner" />
-        </Field>
-
-        <div>
-          <span className="mb-1.5 block text-sm font-semibold text-slate-700">Ad type</span>
-          <div className="grid grid-cols-2 gap-3">
-            {(["adsense", "custom"] as AdType[]).map((t) => (
-              <button key={t} type="button" onClick={() => set("type", t)}
-                className={`flex items-center gap-2 rounded-xl border px-4 py-3 text-sm font-semibold transition-colors ${form.type === t ? "border-brand-300 bg-brand-50 text-brand-700" : "border-slate-200 bg-white text-slate-600"}`}>
-                {t === "adsense" ? <Megaphone className="h-4 w-4" /> : <ImageIcon className="h-4 w-4" />}
-                {t === "adsense" ? "Google AdSense" : "Custom ad"}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div className="grid gap-4 sm:grid-cols-2">
-          <Field label="Placement">
-            <select className={input} value={form.placement} onChange={(e) => set("placement", e.target.value as Placement)}>
-              {PLACEMENTS.map((p) => <option key={p.value} value={p.value}>{p.label}</option>)}
-            </select>
-          </Field>
-          <Field label="Show on">
-            <select className={input} value={form.scope} onChange={(e) => set("scope", e.target.value as Scope)}>
-              {SCOPES.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
-            </select>
-          </Field>
-        </div>
-
-        {form.scope === "path" && (
-          <Field label="Path prefix" hint="e.g. /blog — the ad shows on pages starting with this">
-            <input className={`${input} font-mono`} value={form.pathPrefix} onChange={(e) => set("pathPrefix", e.target.value)} placeholder="/blog" />
-          </Field>
-        )}
-
-        {form.type === "adsense" ? (
-          <Field label="AdSense slot ID" hint="From the ad unit you created in AdSense">
-            <input className={input} value={form.adsenseSlot} onChange={(e) => set("adsenseSlot", e.target.value)} placeholder="1234567890" />
-          </Field>
-        ) : (
-          <div className="space-y-4 rounded-xl border border-slate-100 bg-slate-50/60 p-4">
-            <div>
-              <span className="mb-1.5 block text-sm font-semibold text-slate-700">Format</span>
-              <div className="grid grid-cols-3 gap-2">
-                {CUSTOM_FORMATS.map((f) => (
-                  <button key={f.value} type="button" onClick={() => set("customFormat", f.value)}
-                    className={`rounded-lg border px-2 py-2 text-xs font-semibold transition-colors ${form.customFormat === f.value ? "border-brand-300 bg-brand-50 text-brand-700" : "border-slate-200 bg-white text-slate-600"}`}>
-                    {f.label}
-                  </button>
-                ))}
+      <div className="grid items-start gap-6 lg:grid-cols-12">
+        {/* ---------------- Form ---------------- */}
+        <div className="min-w-0 space-y-5 lg:col-span-7">
+          <Card title="Basics">
+            <div className="space-y-5">
+              <Field label="Name" hint="Only visible in the admin." htmlFor="ad-name">
+                <input id="ad-name" className={`${inputCls} ${fieldErr(!form.name.trim())}`} value={form.name} onChange={(e) => set("name", e.target.value)} placeholder="e.g. Fiber promo – home" maxLength={120} />
+              </Field>
+              <div>
+                <span className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-200">Ad type</span>
+                <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 2xl:grid-cols-5" role="radiogroup" aria-label="Ad type">
+                  {AD_TYPES.map((t) => {
+                    const Icon = TYPE_META[t.value].icon;
+                    const on = form.type === t.value;
+                    return (
+                      <button
+                        key={t.value}
+                        type="button"
+                        role="radio"
+                        aria-checked={on}
+                        onClick={() => set("type", t.value)}
+                        className={`flex flex-col items-start gap-1.5 rounded-xl border p-3 text-start transition-colors focus:outline-none focus-visible:ring-4 focus-visible:ring-brand-500/20 ${on ? "border-brand-500 bg-brand-50/70 ring-1 ring-brand-500 dark:border-brand-400 dark:bg-brand-400/10 dark:ring-brand-400" : "border-slate-200 hover:border-slate-300 hover:bg-slate-50 dark:border-white/10 dark:hover:bg-white/[0.04]"}`}
+                      >
+                        <Icon className={`h-4 w-4 ${on ? "text-brand-600 dark:text-brand-300" : "text-slate-400"}`} aria-hidden="true" />
+                        <span className={`text-sm font-semibold ${on ? "text-brand-700 dark:text-brand-200" : "text-slate-800 dark:text-slate-100"}`}>{t.label}</span>
+                        <span className="text-[11px] leading-snug text-slate-500 dark:text-slate-400">{t.hint}</span>
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
             </div>
-            {form.customFormat !== "text" && (
-              <Field label="Image URL">
-                <input className={input} value={form.image} onChange={(e) => set("image", e.target.value)} placeholder="https://…/banner.png" />
-              </Field>
-            )}
-            {form.customFormat !== "image" && (
-              <>
-                <Field label="Title">
-                  <input className={input} value={form.title} onChange={(e) => set("title", e.target.value)} placeholder="Get 50% off fast fiber" />
-                </Field>
-                <Field label="Description">
-                  <textarea className={`${input} resize-y`} rows={2} value={form.description} onChange={(e) => set("description", e.target.value)} placeholder="Short sentence about the offer." />
-                </Field>
-              </>
-            )}
-            <Field label="Link URL">
-              <input className={input} value={form.link} onChange={(e) => set("link", e.target.value)} placeholder="https://advertiser.com" />
-            </Field>
+          </Card>
 
-            {/* Live preview */}
-            <div>
-              <span className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-slate-400">Preview</span>
-              <CustomPreview form={form} />
+          <Card title="Creative" description={AD_TYPES.find((t) => t.value === form.type)?.hint}>
+            <div className="space-y-4">
+              {form.type === "adsense" && (
+                <>
+                  <Field label="AdSense slot ID" hint="The data-ad-slot number of the ad unit you created in AdSense." htmlFor="ad-slot">
+                    <input id="ad-slot" inputMode="numeric" className={`${inputCls} font-mono ${fieldErr(!/^\d{6,}$/.test(form.adsenseSlot))}`} value={form.adsenseSlot} onChange={(e) => set("adsenseSlot", e.target.value.replace(/\s/g, ""))} placeholder="1234567890" />
+                  </Field>
+                  <p className="rounded-lg bg-slate-50 px-3 py-2 text-xs text-slate-500 dark:bg-white/[0.03] dark:text-slate-400">
+                    Publisher ID (from Settings):{" "}
+                    {cfg?.adsenseClient ? <span className="font-mono text-slate-700 dark:text-slate-200">{cfg.adsenseClient}</span> : <span className="font-semibold text-amber-600 dark:text-amber-400">not set — AdSense ads won&apos;t show until you add it in Settings</span>}
+                  </p>
+                </>
+              )}
+
+              {showImage && (
+                <Field label={form.type === "image" ? "Banner image" : "Image"} hint={form.type === "image" ? "Shown at its natural size, up to the slot width. Typical: 728×90, 970×250, 300×250." : "Landscape works best (e.g. 1200×630)."}>
+                  <ImageUpload value={form.image} onChange={(url) => set("image", url)} />
+                </Field>
+              )}
+              {showImage && (
+                <Field label="Alt text" hint="Describes the image for screen readers and SEO." htmlFor="ad-alt">
+                  <input id="ad-alt" className={inputCls} value={form.alt} onChange={(e) => set("alt", e.target.value)} placeholder="Fiber internet 1 Gbps – 50% off" maxLength={200} />
+                </Field>
+              )}
+
+              {showText && (
+                <>
+                  <Field label={form.type === "text" ? "Headline" : "Title"} htmlFor="ad-title">
+                    <input id="ad-title" className={`${inputCls} ${fieldErr(!form.title.trim())}`} value={form.title} onChange={(e) => set("title", e.target.value)} placeholder="Get 50% off fast fiber" maxLength={140} />
+                  </Field>
+                  <Field label="Text" htmlFor="ad-desc" hint={`${form.description.length}/500`}>
+                    <textarea id="ad-desc" rows={3} className={`${inputCls} h-auto resize-y py-2`} value={form.description} onChange={(e) => set("description", e.target.value)} placeholder="One or two short sentences about the offer." maxLength={500} />
+                  </Field>
+                  <Field label="Button label" hint="Leave empty for “Learn more” (translated automatically)." htmlFor="ad-btn">
+                    <input id="ad-btn" className={inputCls} value={form.buttonText} onChange={(e) => set("buttonText", e.target.value)} placeholder="Learn more" maxLength={40} />
+                  </Field>
+                </>
+              )}
+
+              {showLink && (
+                <Field label="Link URL" hint="Opens in a new tab with rel=sponsored; UTM tags are added automatically." htmlFor="ad-link">
+                  <input id="ad-link" type="url" className={`${inputCls} ${fieldErr(!/^https?:\/\//i.test(form.link) && !form.link.startsWith("/"))}`} value={form.link} onChange={(e) => set("link", e.target.value.trim())} placeholder="https://advertiser.com/offer" />
+                </Field>
+              )}
+
+              {form.type === "html" && (
+                <>
+                  <Field label="Ad code (HTML / JavaScript)" hint={`${form.html.length.toLocaleString()} / 50,000 characters`} htmlFor="ad-html">
+                    <textarea
+                      id="ad-html"
+                      rows={10}
+                      spellCheck={false}
+                      className={`${inputCls} h-auto resize-y py-2 font-mono text-xs leading-relaxed ${fieldErr(!form.html.trim())}`}
+                      value={form.html}
+                      onChange={(e) => set("html", e.target.value)}
+                      placeholder={'<script async src="https://network.example/ad.js"></script>\n<div id="ad-container"></div>'}
+                    />
+                  </Field>
+                  <div className="flex items-start gap-2 rounded-lg bg-emerald-50 px-3 py-2 text-xs text-emerald-800 dark:bg-emerald-400/10 dark:text-emerald-200">
+                    <ShieldCheck className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                    Runs in a sandboxed frame: the code can show ads and open links, but can&apos;t read your site, cookies or visitors&apos; data. Impressions are tracked; clicks are estimated.
+                  </div>
+                  <div>
+                    <span className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-200">Size</span>
+                    <div className="mb-3 flex flex-wrap gap-1.5">
+                      {SIZE_PRESETS.map((p) => {
+                        const on = Number(form.width) === p.w && Number(form.height) === p.h;
+                        return (
+                          <button
+                            key={p.label}
+                            type="button"
+                            onClick={() => setForm((f) => ({ ...f, width: String(p.w), height: String(p.h) }))}
+                            className={`rounded-md px-2.5 py-1 text-xs font-medium ring-1 ring-inset transition-colors ${on ? "bg-brand-600 text-white ring-brand-600" : "text-slate-600 ring-slate-200 hover:bg-slate-50 dark:text-slate-300 dark:ring-white/10 dark:hover:bg-white/[0.05]"}`}
+                          >
+                            {p.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <Field label="Width (px)" hint="0 = full width" htmlFor="ad-w">
+                        <input id="ad-w" type="number" min={0} max={2000} className={inputCls} value={form.width} onChange={(e) => set("width", e.target.value)} />
+                      </Field>
+                      <Field label="Height (px)" hint="0 = grows to fit the ad" htmlFor="ad-h">
+                        <input id="ad-h" type="number" min={0} max={2000} className={inputCls} value={form.height} onChange={(e) => set("height", e.target.value)} />
+                      </Field>
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
-          </div>
-        )}
+          </Card>
 
-        <div className="grid gap-4 sm:grid-cols-2">
-          <Field label="Order" hint="Lower shows first when several match a spot">
-            <input type="number" className={input} value={form.order} onChange={(e) => set("order", e.target.value)} />
-          </Field>
-          <div className="flex items-end">
-            <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700">
-              <input type="checkbox" checked={form.enabled} onChange={(e) => set("enabled", e.target.checked)} className="h-5 w-5 rounded border-slate-300 text-brand-600 focus:ring-brand-500" />
-              Active
-            </label>
-          </div>
+          <Card title="Targeting" description="Where and to whom the ad is shown">
+            <div className="space-y-5">
+              <div className="grid gap-4 sm:grid-cols-2">
+                <Field label="Placement" hint={placementMeta?.hint}>
+                  <Select value={form.placement} onChange={(v) => set("placement", v)} options={PLACEMENTS} />
+                </Field>
+                <Field label="Pages">
+                  <Select value={form.scope} onChange={(v) => set("scope", v)} options={SCOPES} />
+                </Field>
+              </div>
+              {form.scope === "path" && (
+                <Field label="Path prefix" hint="Matches in every language: /blog also matches /fr/blog and /ar/blog. Use the language filter below to restrict." htmlFor="ad-path">
+                  <input id="ad-path" className={`${inputCls} font-mono ${fieldErr(!form.pathPrefix.startsWith("/"))}`} value={form.pathPrefix} onChange={(e) => set("pathPrefix", e.target.value.trim())} placeholder="/blog/5g" />
+                </Field>
+              )}
+              <div>
+                <span className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-200">Languages</span>
+                <div className="flex flex-wrap gap-1.5">
+                  <Chip on={form.locales.length === 0} onClick={() => set("locales", [])}>
+                    All languages
+                  </Chip>
+                  {LOCALES.map((l) => {
+                    const on = form.locales.includes(l);
+                    return (
+                      <Chip key={l} on={on} onClick={() => set("locales", on ? form.locales.filter((x) => x !== l) : [...form.locales, l])}>
+                        <span className="font-mono text-[10px] uppercase opacity-70">{l}</span> {LOCALE_META[l].english}
+                      </Chip>
+                    );
+                  })}
+                </div>
+              </div>
+              <div>
+                <span className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-200">Devices</span>
+                <Segmented value={form.device} onChange={(v) => set("device", v)} options={DEVICES} />
+                <p className="mt-1.5 text-xs text-slate-400">Mobile = screens narrower than 768px.</p>
+              </div>
+            </div>
+          </Card>
+
+          <Card title="Schedule & priority">
+            <div className="space-y-5">
+              <div className="grid gap-4 sm:grid-cols-2">
+                <Field label="Start" hint="Empty = starts immediately" htmlFor="ad-start">
+                  <input id="ad-start" type="datetime-local" className={inputCls} value={toLocalInput(form.startAt)} onChange={(e) => set("startAt", fromLocalInput(e.target.value))} />
+                </Field>
+                <Field label="End" hint="Empty = runs until disabled" htmlFor="ad-end">
+                  <input id="ad-end" type="datetime-local" className={`${inputCls} ${fieldErr(!!(form.startAt && form.endAt && form.endAt <= form.startAt))}`} value={toLocalInput(form.endAt)} onChange={(e) => set("endAt", fromLocalInput(e.target.value))} />
+                </Field>
+              </div>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <Field label="Priority" hint="Lower number wins when several ads match a slot; equal numbers rotate." htmlFor="ad-order">
+                  <input id="ad-order" type="number" className={inputCls} value={form.order} onChange={(e) => set("order", e.target.value)} />
+                </Field>
+                <div className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 px-4 py-3 dark:border-white/10 sm:mt-6 sm:self-start">
+                  <div>
+                    <p className="text-sm font-medium text-slate-800 dark:text-slate-100">Enabled</p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">Status: {status}</p>
+                  </div>
+                  <Toggle checked={form.enabled} onChange={(v) => set("enabled", v)} label="Enabled" />
+                </div>
+              </div>
+            </div>
+          </Card>
+        </div>
+
+        {/* ---------------- Preview + stats ---------------- */}
+        <div className="min-w-0 space-y-5 lg:sticky lg:top-20 lg:col-span-5">
+          <Card title="Live preview" icon={Eye} description={placementMeta?.label} bodyClassName="p-4">
+            {validation && touched ? <p className="mb-3 text-xs text-amber-600 dark:text-amber-400">{validation}</p> : null}
+            <AdPreview ad={previewAd} placement={form.placement} />
+          </Card>
+          {adId && ad && <AdStats ad={ad} onReset={resetStats} resetting={resetting} isScript={ad.type === "html"} />}
+          {!adId && (
+            <div className="flex items-start gap-2.5 rounded-xl border border-dashed border-slate-200 px-4 py-3 text-xs text-slate-500 dark:border-white/10 dark:text-slate-400">
+              <Megaphone className="mt-0.5 h-4 w-4 shrink-0 text-slate-400" />
+              Impressions, clicks and countries appear here after you create the ad.
+            </div>
+          )}
         </div>
       </div>
 
-      <div className="mt-6 flex items-center gap-3 border-t border-slate-200 pt-5">
-        <button onClick={save} disabled={saving} className="inline-flex items-center gap-2 rounded-xl bg-brand-600 px-6 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-brand-700 disabled:opacity-60">
-          {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />} Save ad
-        </button>
-        {adId && (
-          <button onClick={remove} className="ml-auto inline-flex items-center gap-2 rounded-xl border border-red-200 bg-white px-4 py-2.5 text-sm font-semibold text-red-600 hover:bg-red-50">
-            <Trash2 className="h-4 w-4" /> Delete
-          </button>
-        )}
+      {/* Mobile save bar */}
+      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white/95 px-4 py-3 backdrop-blur dark:border-white/10 dark:bg-ink-900/95 lg:hidden">
+        <Button variant="primary" icon={Save} onClick={save} loading={saving} className="w-full">
+          {adId ? "Save changes" : "Create ad"}
+        </Button>
+      </div>
+      {/* Desktop bottom save */}
+      <div className="mt-6 hidden justify-end border-t border-slate-200 pt-5 dark:border-white/10 lg:flex">
+        <Button variant="primary" icon={Save} onClick={save} loading={saving}>
+          {adId ? "Save changes" : "Create ad"}
+        </Button>
       </div>
     </div>
   );
 }
 
-function CustomPreview({ form }: { form: Form }) {
-  // key forces a fresh CustomAdCard (and image-error reset) when the URL changes.
+function Chip({ on, onClick, children }: { on: boolean; onClick: () => void; children: React.ReactNode }) {
   return (
-    <CustomAdCard
-      key={`${form.customFormat}-${form.image}`}
-      image={form.image}
-      title={form.title}
-      description={form.description}
-      customFormat={form.customFormat}
-      preview
-    />
-  );
-}
-
-function StatBox({ icon, label, value }: { icon: React.ReactNode; label: string; value: number | string }) {
-  return (
-    <div className="rounded-xl border border-slate-200 bg-white p-3 text-center">
-      <div className="flex items-center justify-center gap-1.5 text-slate-400">{icon}<span className="text-[11px] font-semibold uppercase tracking-wider">{label}</span></div>
-      <p className="mt-1 text-xl font-extrabold tabular-nums text-slate-900">{value}</p>
-    </div>
-  );
-}
-
-function Field({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
-  return (
-    <label className="block">
-      <span className="mb-1.5 block text-sm font-semibold text-slate-700">{label}</span>
+    <button
+      type="button"
+      aria-pressed={on}
+      onClick={onClick}
+      className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium ring-1 ring-inset transition-colors ${on ? "bg-brand-600 text-white ring-brand-600 dark:bg-brand-500 dark:ring-brand-500" : "text-slate-600 ring-slate-200 hover:bg-slate-50 dark:text-slate-300 dark:ring-white/10 dark:hover:bg-white/[0.05]"}`}
+    >
       {children}
-      {hint && <span className="mt-1 block text-xs text-slate-400">{hint}</span>}
-    </label>
+    </button>
+  );
+}
+
+function Field({ label, hint, htmlFor, children }: { label: string; hint?: string; htmlFor?: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <label htmlFor={htmlFor} className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-200">
+        {label}
+      </label>
+      {children}
+      {hint && <p className="mt-1 text-xs text-slate-400 dark:text-slate-500">{hint}</p>}
+    </div>
   );
 }

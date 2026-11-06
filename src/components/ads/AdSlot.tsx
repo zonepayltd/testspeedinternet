@@ -1,27 +1,13 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import { useAds } from "./AdsContext";
-import AdUnit from "./AdUnit";
-import CustomAdCard from "./CustomAdCard";
-import { adMatchesPath, type Placement } from "@/lib/adsModel";
+import AdCreative from "./AdCreative";
+import { adIsRenderable, adMatchesPath, inSchedule, type Placement, type PublicAd } from "@/lib/adsModel";
 import { splitLocale, pick } from "@/i18n/config";
 import { useLocale } from "@/i18n/client";
 import { commonMessages } from "@/i18n/messages/common";
-
-// Tag the advertiser's link so their analytics shows the traffic came from us.
-function withUtm(link: string): string {
-  try {
-    const u = new URL(link);
-    if (!u.searchParams.has("utm_source")) u.searchParams.set("utm_source", "testspeedinternet.com");
-    if (!u.searchParams.has("utm_medium")) u.searchParams.set("utm_medium", "ad");
-    if (!u.searchParams.has("utm_campaign")) u.searchParams.set("utm_campaign", "site-ads");
-    return u.toString();
-  } catch {
-    return link;
-  }
-}
 
 function sendEvent(adId: string, type: "impression" | "click") {
   let visitorId = "";
@@ -39,14 +25,28 @@ function sendEvent(adId: string, type: "impression" | "click") {
   } catch {
     /* fall through */
   }
-  fetch("/api/ad-event", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body,
-    keepalive: true,
-  }).catch(() => {});
+  fetch("/api/ad-event", { method: "POST", headers: { "Content-Type": "application/json" }, body, keepalive: true }).catch(() => {});
 }
 
+/** "mobile" below 768px, else "desktop"; null until mounted. */
+function useDevice(): "mobile" | "desktop" | null {
+  const [d, setD] = useState<"mobile" | "desktop" | null>(null);
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 767px)");
+    const set = () => setD(mq.matches ? "mobile" : "desktop");
+    set();
+    mq.addEventListener?.("change", set);
+    return () => mq.removeEventListener?.("change", set);
+  }, []);
+  return d;
+}
+
+/**
+ * <AdSlot placement="top" /> — shows the best matching active ad for this spot.
+ * Matching: placement, page scope (language prefix stripped), language, device,
+ * schedule. Lowest priority number wins; ads with the same priority rotate.
+ * The in-content slot on blog articles also serves "inArticle" ads (preferred).
+ */
 export default function AdSlot({
   placement,
   className = "",
@@ -59,65 +59,77 @@ export default function AdSlot({
   label?: boolean;
 }) {
   const ads = useAds();
-  // Ads target paths without the language prefix ("/fr/blog" matches "/blog").
-  const pathname = splitLocale(usePathname() || "/").path;
-  const t = pick(commonMessages, useLocale()).common;
+  const { locale: pathLocale, path: pathname } = splitLocale(usePathname() || "/");
+  const ctxLocale = useLocale();
+  const locale = pathLocale || ctxLocale;
+  const t = pick(commonMessages, ctxLocale).common;
+  const device = useDevice();
+  const isArticle = pathname.startsWith("/blog/");
 
-  const candidate = ads.enabled
-    ? ads.ads.find((a) => a.placement === placement && adMatchesPath(a.scope, a.pathPrefix, pathname))
-    : undefined;
-
-  // Validity per type/format.
-  let ad = candidate;
-  if (ad) {
-    if (ad.type === "adsense" && (!ads.client || !ad.adsenseSlot)) ad = undefined;
-    if (ad?.type === "custom") {
-      const fmt = ad.customFormat;
-      if (!ad.link) ad = undefined;
-      else if (fmt === "image" && !ad.image) ad = undefined;
-      else if (fmt === "text" && !ad.title) ad = undefined;
-      else if (fmt === "card" && (!ad.image || !ad.title)) ad = undefined;
+  const candidates = useMemo(() => {
+    if (!ads.enabled || !device) return [] as PublicAd[];
+    const now = Date.now();
+    const ok = (a: PublicAd) =>
+      adMatchesPath(a.scope, a.pathPrefix, pathname) &&
+      (!a.locales?.length || a.locales.includes(locale)) &&
+      (!a.device || a.device === "all" || a.device === device) &&
+      inSchedule(a, now) &&
+      adIsRenderable(a) &&
+      (a.type !== "adsense" || Boolean(ads.client));
+    const pickFor = (p: Placement) => ads.ads.filter((a) => a.placement === p && ok(a));
+    if (placement === "inContent" && isArticle) {
+      const inArticle = pickFor("inArticle");
+      if (inArticle.length) return inArticle;
     }
-  }
+    return pickFor(placement);
+  }, [ads, device, pathname, locale, placement, isArticle]);
 
-  const adId = ad?.id;
+  // Lowest priority wins; rotate between ads sharing it (chosen once per page view).
+  const key = candidates.map((a) => a.id).join(",");
+  const ad = useMemo(() => {
+    if (!candidates.length) return undefined;
+    const min = Math.min(...candidates.map((a) => a.order ?? 0));
+    const top = candidates.filter((a) => (a.order ?? 0) === min);
+    return top[Math.floor(Math.random() * top.length)];
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [key]);
+
+  // Impression = at least half the ad visible once (hidden rails never count).
+  const box = useRef<HTMLElement>(null);
   const impressed = useRef<string | null>(null);
+  const adId = ad?.id;
   useEffect(() => {
-    if (!adId || impressed.current === adId) return;
-    impressed.current = adId;
-    sendEvent(adId, "impression");
+    const el = box.current;
+    if (!adId || !el || impressed.current === adId) return;
+    if (typeof IntersectionObserver === "undefined") {
+      impressed.current = adId;
+      sendEvent(adId, "impression");
+      return;
+    }
+    const io = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((e) => e.isIntersecting) && impressed.current !== adId) {
+          impressed.current = adId;
+          sendEvent(adId, "impression");
+          io.disconnect();
+        }
+      },
+      { threshold: 0.5 },
+    );
+    io.observe(el);
+    return () => io.disconnect();
   }, [adId]);
+
+  const onClick = useCallback(() => adId && sendEvent(adId, "click"), [adId]);
 
   if (!ad) return null;
 
   return (
-    <aside className={`mx-auto w-full ${className}`} aria-label="Advertisement">
-      {label && ad.type === "adsense" && (
-        <p className="mb-1 text-center text-[10px] font-medium uppercase tracking-wider text-slate-300 dark:text-slate-600">
-          {t.advertisement}
-        </p>
+    <aside ref={box} className={`mx-auto w-full ${className}`} aria-label={t.advertisement} data-ad-placement={placement}>
+      {label && (ad.type === "adsense" || ad.type === "html") && (
+        <p className="mb-1 text-center text-[10px] font-medium uppercase tracking-wider text-slate-300 dark:text-slate-600">{t.advertisement}</p>
       )}
-
-      {ad.type === "adsense" ? (
-        <AdUnit
-          client={ads.client}
-          slot={ad.adsenseSlot}
-          format={vertical ? "vertical" : "auto"}
-          responsive={!vertical}
-          style={vertical ? { display: "block", width: 160, minHeight: 600 } : { display: "block", minHeight: 90 }}
-        />
-      ) : (
-        <a
-          href={withUtm(ad.link)}
-          target="_blank"
-          rel="sponsored noopener"
-          onClick={() => sendEvent(ad.id, "click")}
-          className="block"
-          style={vertical ? { maxWidth: 220 } : undefined}
-        >
-          <CustomAdCard image={ad.image} title={ad.title} description={ad.description} customFormat={ad.customFormat} />
-        </a>
-      )}
+      <AdCreative ad={ad} client={ads.client} vertical={vertical} onClick={onClick} />
     </aside>
   );
 }

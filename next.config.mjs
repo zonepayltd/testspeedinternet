@@ -1,6 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  // Lets a second local dev server run side by side (e.g. NEXT_DIST_DIR=.next-admin).
+  distDir: process.env.NEXT_DIST_DIR || ".next",
   poweredByHeader: false,
   // Don't fail the production build on ESLint warnings (types are still checked).
   eslint: { ignoreDuringBuilds: true },

@@ -18,6 +18,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import SpeedTest from "@/components/SpeedTest";
+import AdSlot from "@/components/ads/AdSlot";
 import PageHero from "@/components/marketing/PageHero";
 import SectionHead from "@/components/marketing/SectionHead";
 import FaqList from "@/components/marketing/FaqList";
@@ -71,6 +72,7 @@ export default function SpeedToolPage({ locale, tool }: { locale: Locale; tool: 
         <div id="speed-test" className="mt-10 w-full max-w-5xl scroll-mt-24">
           <SpeedTest mode={cfg.mode} />
         </div>
+        <AdSlot placement="afterResults" className="mt-6 w-full max-w-4xl" />
         <ul className="mt-8 flex flex-wrap justify-center gap-x-6 gap-y-2 text-sm text-slate-600 dark:text-slate-400">
           {t.ui.highlights.map((item) => (
             <li key={item} className="flex items-center gap-2">
