@@ -11,7 +11,7 @@ const TABS: { id: TabId; label: string; icon: LucideIcon; desc: string }[] = [
   { id: "general", label: "General", icon: Building2, desc: "Brand info and integration overview" },
   { id: "search", label: "Search engines", icon: Search, desc: "Search Console, Bing and Google Analytics" },
   { id: "ads", label: "Ads", icon: Megaphone, desc: "AdSense publisher ID and ad switches" },
-  { id: "captcha", label: "Captcha", icon: ShieldCheck, desc: "Cloudflare Turnstile keys" },
+  { id: "captcha", label: "Captcha", icon: ShieldCheck, desc: "Built-in slider puzzle" },
   { id: "apps", label: "Apps", icon: Smartphone, desc: "App store download links" },
   { id: "social", label: "Social links", icon: Share2, desc: "Footer social icons" },
   { id: "trustpilot", label: "Trustpilot", icon: Star, desc: "Reviews profile and widget" },

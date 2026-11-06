@@ -1,4 +1,4 @@
-import { verifyTurnstile } from "@/lib/turnstile";
+import { verifyPass } from "@/lib/captcha";
 import { adminDb, adminConfigured } from "@/lib/firebaseAdmin";
 import { FieldValue } from "firebase-admin/firestore";
 
@@ -30,8 +30,8 @@ export async function POST(request: Request) {
   }
 
   // Captcha — if it fails, the message is NOT sent.
-  const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim();
-  const captchaOk = await verifyTurnstile(captchaToken, ip);
+  // Built-in slider captcha (src/lib/captcha.ts): the form sends a single-use pass token.
+  const captchaOk = verifyPass(captchaToken, "contact");
   if (!captchaOk) {
     return Response.json(
       { ok: false, error: "Captcha verification failed. Please try again." },

@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { AlertCircle, ArrowLeft, ArrowRight, Eye, EyeOff, Gauge, Loader2, Lock, ShieldCheck, User } from "lucide-react";
-import TurnstileWidget from "@/components/TurnstileWidget";
+import SliderCaptcha from "@/components/SliderCaptcha";
 import { COMPANY } from "@/lib/company";
 
 const fieldCls =
@@ -17,7 +17,6 @@ export default function AdminLoginPage() {
   const [showPw, setShowPw] = useState(false);
   const [capsLock, setCapsLock] = useState(false);
   const [captchaToken, setCaptchaToken] = useState("");
-  const [captchaEnabled, setCaptchaEnabled] = useState(false);
   const [captchaKey, setCaptchaKey] = useState(0); // bump to re-render (reset) the widget
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -26,12 +25,7 @@ export default function AdminLoginPage() {
 
   const onVerify = useCallback((token: string) => setCaptchaToken(token), []);
 
-  // Only show the captcha if it's configured.
   useEffect(() => {
-    fetch("/api/config", { cache: "no-store" })
-      .then((r) => r.json())
-      .then((d) => setCaptchaEnabled(Boolean(d?.turnstileSiteKey)))
-      .catch(() => {});
     userRef.current?.focus();
   }, []);
 
@@ -43,7 +37,7 @@ export default function AdminLoginPage() {
       setError("Enter your username and password.");
       return;
     }
-    if (captchaEnabled && !captchaToken) {
+    if (!captchaToken) {
       setError("Please complete the security check.");
       return;
     }
@@ -58,11 +52,9 @@ export default function AdminLoginPage() {
       if (!res.ok || !data.ok) {
         setError(data.error || (res.status === 429 ? "Too many attempts. Please wait a moment." : "Sign in failed."));
         setLoading(false);
-        // Turnstile tokens are single-use: get a fresh one for the next try.
-        if (captchaEnabled) {
-          setCaptchaToken("");
-          setCaptchaKey((k) => k + 1);
-        }
+        // Captcha passes are single-use: verify again for the next try.
+        setCaptchaToken("");
+        setCaptchaKey((k) => k + 1);
         return;
       }
       setSuccess(true);
@@ -175,11 +167,7 @@ export default function AdminLoginPage() {
                 {capsLock && <p className="mt-1.5 text-xs font-medium text-amber-600 dark:text-amber-400">Caps Lock is on</p>}
               </div>
 
-              {captchaEnabled && (
-                <div className="flex min-h-[65px] justify-center">
-                  <TurnstileWidget key={captchaKey} onVerify={onVerify} />
-                </div>
-              )}
+              <SliderCaptcha key={captchaKey} context="login" onChange={onVerify} invalid={!!error && !captchaToken} />
             </div>
 
             <button

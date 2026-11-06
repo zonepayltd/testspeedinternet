@@ -52,8 +52,7 @@ VALUES from your local `.env.local` file.
 | `ADMIN_USERNAME` | `ahmedaicha` |
 | `ADMIN_PASSWORD` | your admin password |
 | `ADMIN_SESSION_SECRET` | the long random hex string |
-| `NEXT_PUBLIC_TURNSTILE_SITE_KEY` | Cloudflare Turnstile site key |
-| `TURNSTILE_SECRET_KEY` | Cloudflare Turnstile secret key |
+| `CAPTCHA_SECRET` | optional — any long random string for the built-in slider captcha (falls back to `ADMIN_SESSION_SECRET`) |
 
 (The empty `NEXT_PUBLIC_FIREBASE_*` web-config keys are optional — leave them out.)
 
@@ -73,11 +72,9 @@ Then click **Deploy**. Vercel builds and gives you a `…vercel.app` URL.
 
 ---
 
-## 5. Cloudflare Turnstile — allow the live domain
+## 5. Captcha
 
-In dash.cloudflare.com → **Turnstile → your widget → Hostnames**, add:
-`testspeedinternet.com`, `www.testspeedinternet.com` (and your `*.vercel.app`
-URL while testing). Otherwise the captcha will error on the live site.
+The contact form and admin login use a built-in slider-puzzle captcha (no Cloudflare/Google). Nothing to set up.
 
 ---
 

@@ -74,11 +74,9 @@ export async function saveSiteConfig(data: Partial<SiteConfig>): Promise<void> {
   cache = null; // invalidate
 }
 
-// Public-safe subset (no secrets). Falls back to env for the captcha key so
-// keys set on the host (Vercel) work even if not stored in Firestore.
+// Public-safe subset (no secrets).
 export function publicConfig(c: SiteConfig) {
   return {
-    turnstileSiteKey: c.turnstileSiteKey || process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || "",
     gaMeasurementId: c.gaMeasurementId,
     appGooglePlay: c.appGooglePlay,
     appApple: c.appApple,

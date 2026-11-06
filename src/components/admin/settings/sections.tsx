@@ -32,8 +32,6 @@ export function collectErrors(c: Config): { tab: TabId; label: string }[] {
   push("search", "Bing verification", validators.token(c.bingVerification.trim()));
   push("search", "Analytics ID", validators.ga(c.gaMeasurementId.trim()));
   push("ads", "AdSense publisher ID", validators.adsense(c.adsenseClient.trim()));
-  push("captcha", "Turnstile site key", validators.turnstileKey(c.turnstileSiteKey.trim()));
-  push("captcha", "Turnstile secret", validators.turnstileKey(c.turnstileSecret.trim()));
   (["appGooglePlay", "appApple", "appAmazon", "appApk"] as const).forEach((k) => push("apps", k, validators.url(c[k].trim())));
   c.socials.forEach((s, i) => push("social", `Social link #${i + 1}`, s.url.trim() ? validators.url(s.url.trim()) : null));
   push("trustpilot", "Trustpilot URL", validators.url(c.trustpilotUrl.trim()));
@@ -84,7 +82,6 @@ function StatusRow({ label, on, detail, onClick }: { label: string; on: boolean;
 
 export function GeneralTab({ config: c, env, goTo }: TabProps) {
   const site = COMPANY.siteUrl;
-  const captcha = Boolean((c.turnstileSiteKey || env?.turnstileSiteKeyFromEnv) && (c.turnstileSecret || env?.turnstileSecretFromEnv));
   const apps = [c.appGooglePlay, c.appApple, c.appAmazon, c.appApk].filter(Boolean).length;
   return (
     <div className="space-y-6">
@@ -100,7 +97,7 @@ export function GeneralTab({ config: c, env, goTo }: TabProps) {
         <StatusRow label="Bing Webmaster Tools" on={Boolean(c.bingVerification)} detail={c.bingVerification ? "Verification tag set" : "Not verified yet"} onClick={() => goTo("search")} />
         <StatusRow label="Google Analytics 4" on={Boolean(c.gaMeasurementId)} detail={c.gaMeasurementId || "No measurement ID"} onClick={() => goTo("search")} />
         <StatusRow label="Google AdSense" on={Boolean(c.adsenseClient)} detail={c.adsenseClient ? `${c.adsenseClient} · ads ${c.adsEnabled ? "on" : "off"}` : "No publisher ID"} onClick={() => goTo("ads")} />
-        <StatusRow label="Cloudflare Turnstile" on={captcha} detail={captcha ? "Login & contact form protected" : "Captcha disabled"} onClick={() => goTo("captcha")} />
+        <StatusRow label="Slider captcha (built-in)" on detail="Login & contact form protected" onClick={() => goTo("captcha")} />
         <StatusRow label="App store links" on={apps > 0} detail={`${apps} of 4 links set`} onClick={() => goTo("apps")} />
         <StatusRow label="Social links" on={c.socials.length > 0} detail={`${c.socials.length} link${c.socials.length === 1 ? "" : "s"} in the footer`} onClick={() => goTo("social")} />
         <StatusRow label="Trustpilot" on={Boolean(c.trustpilotUrl)} detail={c.trustpilotUrl ? (c.trustpilotBusinessId ? "Profile + review widget" : "Profile link only") : "Not connected"} onClick={() => goTo("trustpilot")} />
@@ -342,45 +339,22 @@ export function AdsTab({ config: c, set, dirty }: TabProps) {
 
 /* --------------------------------- Captcha --------------------------------- */
 
-export function CaptchaTab({ config: c, set, env }: TabProps) {
-  const site = Boolean(c.turnstileSiteKey.trim() || env?.turnstileSiteKeyFromEnv);
-  const secret = Boolean(c.turnstileSecret.trim() || env?.turnstileSecretFromEnv);
+export function CaptchaTab(_props: TabProps) {
   return (
     <div className="space-y-6">
       <Section
-        title="Cloudflare Turnstile"
-        description={
-          <>
-            Protects the admin login and the contact form. Create a widget at <ExtLink href="https://dash.cloudflare.com/?to=/:account/turnstile">dash.cloudflare.com → Turnstile</ExtLink>.
-          </>
-        }
-        actions={site && secret ? <Badge tone="green">Active</Badge> : site || secret ? <Badge tone="amber">Incomplete</Badge> : <Badge tone="slate">Off</Badge>}
+        title="Built-in slider captcha"
+        description="Visitors drag a puzzle piece into place to prove they are human. It runs on your own server — no Cloudflare, Google or other third-party service, and no tracking cookies."
+        actions={<Badge tone="green">Active</Badge>}
       >
-        <TextField
-          label="Site key"
-          help={env?.turnstileSiteKeyFromEnv ? "Public key. A key is also set via NEXT_PUBLIC_TURNSTILE_SITE_KEY on the host; this value takes priority." : "Public key, embedded in the page."}
-          value={c.turnstileSiteKey}
-          onChange={(v) => set("turnstileSiteKey", v.trim())}
-          placeholder="0x4AAAAAAA…"
-          validate={validators.turnstileKey}
-          mono
-        />
-        <SecretField
-          label="Secret key"
-          help={env?.turnstileSecretFromEnv ? "Kept on the server only. TURNSTILE_SECRET_KEY is also set on the host." : "Kept on the server only — never sent to visitors."}
-          value={c.turnstileSecret}
-          onChange={(v) => set("turnstileSecret", v.trim())}
-          placeholder="0x4AAAAAAA…"
-          validate={validators.turnstileKey}
-        />
+        <ul className="space-y-2 text-sm text-slate-600 dark:text-slate-300">
+          <li>• Protects the <b>contact form</b> (all 5 languages) and the <b>admin login</b>.</li>
+          <li>• A new random picture every time; the correct position is encrypted on the server, so bots can&apos;t read it.</li>
+          <li>• Checks that the slider was moved like a human, and each pass works only once (valid 3 minutes).</li>
+          <li>• Works with mouse, touch and keyboard (arrow keys + Enter).</li>
+        </ul>
+        <p className="mt-4 text-xs text-slate-500 dark:text-slate-400">Nothing to configure. Optional: set a <code className="font-mono">CAPTCHA_SECRET</code> environment variable on the host to use a dedicated encryption key (otherwise the admin session secret is used).</p>
       </Section>
-      {(site || secret) && (
-        <Note tone="warn">
-          <span>
-            Wrong keys can lock you out of the admin. After saving, open <code className="font-mono">/admin/login</code> in a private window and make sure you can still sign in before logging out here.
-          </span>
-        </Note>
-      )}
     </div>
   );
 }

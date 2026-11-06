@@ -1,6 +1,6 @@
 import crypto from "crypto";
 import { setSessionCookie } from "@/lib/adminSession";
-import { verifyTurnstile } from "@/lib/turnstile";
+import { verifyPass } from "@/lib/captcha";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -22,9 +22,9 @@ export async function POST(request: Request) {
 
   const { username = "", password = "", captchaToken } = payload;
 
-  // 1) Captcha (always checked when Turnstile is configured)
-  const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim();
-  const captchaOk = await verifyTurnstile(captchaToken, ip);
+  // 1) Captcha (always required)
+  // Built-in slider captcha (src/lib/captcha.ts): the form sends a single-use pass token.
+  const captchaOk = verifyPass(captchaToken, "login");
   if (!captchaOk) {
     return Response.json({ ok: false, error: "Captcha verification failed." }, { status: 400 });
   }

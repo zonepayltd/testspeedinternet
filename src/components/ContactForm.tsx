@@ -9,7 +9,7 @@ import PhoneInput, {
 } from "react-phone-number-input";
 import flags from "react-phone-number-input/flags";
 import "react-phone-number-input/style.css";
-import TurnstileWidget from "@/components/TurnstileWidget";
+import SliderCaptcha from "@/components/SliderCaptcha";
 import { LocaleLink, useLocale } from "@/i18n/client";
 import { pick } from "@/i18n/config";
 import { contactMessages, type ContactMessages } from "@/i18n/messages/contact";
@@ -49,21 +49,14 @@ function apiError(error: unknown, t: ContactMessages["form"]): string {
 }
 
 export default function ContactForm() {
-  const t = pick(contactMessages, useLocale()).form;
+  const locale = useLocale();
+  const t = pick(contactMessages, locale).form;
   const [fields, setFields] = useState<Fields>(EMPTY);
   const [errors, setErrors] = useState<Errors>({});
   const [captchaToken, setCaptchaToken] = useState("");
-  const [captchaRequired, setCaptchaRequired] = useState(false);
+  const [captchaKey, setCaptchaKey] = useState(0); // bump to reset the captcha (pass tokens are single-use)
   const [honeypot, setHoneypot] = useState(""); // bots fill this; humans don't
   const [status, setStatus] = useState<"idle" | "sending" | "sent">("idle");
-
-  // Is the captcha configured? (site key set in Admin → Settings)
-  useEffect(() => {
-    fetch("/api/config", { cache: "no-store" })
-      .then((r) => r.json())
-      .then((d) => setCaptchaRequired(Boolean(d?.turnstileSiteKey)))
-      .catch(() => {});
-  }, []);
 
   // Auto-detect the visitor's country (via IP) so the default dial code is right.
   // "" = still detecting; we mount the phone field only once we have a country.
@@ -93,7 +86,7 @@ export default function ContactForm() {
     if (!fields.phone || !isValidPhoneNumber(fields.phone)) e.phone = t.errors.phone;
     if (!fields.subject) e.subject = t.errors.subject;
     if (fields.message.trim().length < 10) e.message = t.errors.message;
-    if (captchaRequired && !captchaToken) e.captcha = t.errors.captcha;
+    if (!captchaToken) e.captcha = t.errors.captcha;
     setErrors(e);
     return Object.keys(e).length === 0;
   };
@@ -112,8 +105,10 @@ export default function ContactForm() {
       });
       const data = await res.json();
       if (!res.ok || !data.ok) {
-        // Captcha failed or invalid → message NOT sent.
+        // Captcha failed or invalid → message NOT sent. The pass was used up: verify again.
         setErrors((er) => ({ ...er, captcha: apiError(data?.error, t) }));
+        setCaptchaToken("");
+        setCaptchaKey((k) => k + 1);
         setStatus("idle");
         return;
       }
@@ -138,6 +133,7 @@ export default function ContactForm() {
           onClick={() => {
             setFields(EMPTY);
             setCaptchaToken("");
+            setCaptchaKey((k) => k + 1);
             setStatus("idle");
           }}
           className="btn-secondary mt-7"
@@ -268,27 +264,24 @@ export default function ContactForm() {
         </Field>
       </div>
 
-      {/* Captcha (Cloudflare Turnstile) — shown when configured in Settings */}
-      {captchaRequired && (
-        <div className="mt-5">
-          <TurnstileWidget
-            onVerify={(tok) => {
-              setCaptchaToken(tok);
-              if (tok) setErrors((er) => ({ ...er, captcha: undefined }));
-            }}
-          />
-          {errors.captcha && (
-            <p role="alert" className="mt-1.5 text-xs font-medium text-red-600 dark:text-red-400">
-              {errors.captcha}
-            </p>
-          )}
-        </div>
-      )}
-      {!captchaRequired && errors.captcha && (
-        <p role="alert" className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700 dark:border-red-400/20 dark:bg-red-400/10 dark:text-red-300">
-          {errors.captcha}
-        </p>
-      )}
+      {/* Built-in slider puzzle captcha (no third-party service) */}
+      <div className="mt-5">
+        <SliderCaptcha
+          key={captchaKey}
+          context="contact"
+          locale={locale}
+          invalid={Boolean(errors.captcha)}
+          onChange={(tok) => {
+            setCaptchaToken(tok);
+            if (tok) setErrors((er) => ({ ...er, captcha: undefined }));
+          }}
+        />
+        {errors.captcha && (
+          <p role="alert" className="mt-1.5 text-xs font-medium text-red-600 dark:text-red-400">
+            {errors.captcha}
+          </p>
+        )}
+      </div>
 
       <div className="mt-6 flex flex-col-reverse gap-4 sm:flex-row sm:items-center sm:justify-between">
         <p className="muted flex items-start gap-2 text-xs leading-relaxed">
