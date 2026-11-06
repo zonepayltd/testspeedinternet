@@ -40,6 +40,9 @@ const en = {
     legal: "Legal",
     follow: "Follow us",
     contactUs: "Contact us",
+    availableIn: "Available in",
+    backToTop: "Back to top",
+    badges: { free: "100% free", noSignup: "No signup", private: "Private", languages: "5 languages" },
   },
 };
 
@@ -82,6 +85,9 @@ const fr: NavMessages = {
     legal: "Mentions légales",
     follow: "Suivez-nous",
     contactUs: "Nous contacter",
+    availableIn: "Disponible en",
+    backToTop: "Haut de page",
+    badges: { free: "100 % gratuit", noSignup: "Sans inscription", private: "Confidentiel", languages: "5 langues" },
   },
 };
 
@@ -122,6 +128,9 @@ const es: NavMessages = {
     legal: "Legal",
     follow: "Síguenos",
     contactUs: "Contáctanos",
+    availableIn: "Disponible en",
+    backToTop: "Volver arriba",
+    badges: { free: "100 % gratis", noSignup: "Sin registro", private: "Privado", languages: "5 idiomas" },
   },
 };
 
@@ -162,6 +171,9 @@ const ar: NavMessages = {
     legal: "قانوني",
     follow: "تابعنا",
     contactUs: "تواصل معنا",
+    availableIn: "متوفر باللغات",
+    backToTop: "العودة للأعلى",
+    badges: { free: "مجاني 100%", noSignup: "بدون تسجيل", private: "خصوصية تامة", languages: "5 لغات" },
   },
 };
 
@@ -202,6 +214,9 @@ const ru: NavMessages = {
     legal: "Правовая информация",
     follow: "Мы в соцсетях",
     contactUs: "Связаться с нами",
+    availableIn: "Доступно на",
+    backToTop: "Наверх",
+    badges: { free: "100% бесплатно", noSignup: "Без регистрации", private: "Конфиденциально", languages: "5 языков" },
   },
 };
 

@@ -36,7 +36,7 @@ export default function AppDownloads() {
   if (available.length === 0) return null;
 
   return (
-    <div className="mt-12 border-t border-slate-200/80 pt-10 text-center dark:border-white/[0.06]">
+    <div className="mt-14 border-t border-slate-200/80 pt-10 text-center dark:border-white/[0.07]">
       <h2 className="text-sm font-semibold text-slate-900 dark:text-white">{t.heading}</h2>
 
       <div className="mt-5 flex flex-wrap items-center justify-center gap-3">

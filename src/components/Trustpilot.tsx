@@ -17,7 +17,8 @@ declare global {
   }
 }
 
-export default function Trustpilot() {
+/** `forceDark` keeps the widget dark on always-dark surfaces (e.g. the footer). */
+export default function Trustpilot({ forceDark = false }: { forceDark?: boolean } = {}) {
   const [cfg, setCfg] = useState<Cfg>({});
   const [scriptReady, setScriptReady] = useState(false);
   const boxRef = useRef<HTMLDivElement>(null);
@@ -28,12 +29,12 @@ export default function Trustpilot() {
   // Follow the site theme (html.dark) so the TrustBox matches light/dark.
   useEffect(() => {
     const root = document.documentElement;
-    const sync = () => setDark(root.classList.contains("dark"));
+    const sync = () => setDark(forceDark || root.classList.contains("dark"));
     sync();
     const mo = new MutationObserver(sync);
     mo.observe(root, { attributes: true, attributeFilter: ["class"] });
     return () => mo.disconnect();
-  }, []);
+  }, [forceDark]);
 
   useEffect(() => {
     fetch("/api/config", { cache: "no-store" })
