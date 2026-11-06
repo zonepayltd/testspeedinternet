@@ -1,5 +1,6 @@
 "use client";
 
+import FirebaseSetup, { isFirebaseMissing } from "@/components/admin/FirebaseSetup";
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import {
@@ -151,9 +152,13 @@ export default function Overview() {
     return (
       <div>
         <PageHeader title="Overview" icon={LayoutDashboard} />
-        <Card>
-          <EmptyState icon={AlertTriangle} title="Couldn’t load the dashboard" description={error} action={<Button icon={RefreshCw} onClick={() => loadStats()}>Retry</Button>} />
-        </Card>
+        {isFirebaseMissing(error) ? (
+          <FirebaseSetup />
+        ) : (
+          <Card>
+            <EmptyState icon={AlertTriangle} title="Couldn’t load the dashboard" description={error} action={<Button icon={RefreshCw} onClick={() => loadStats()}>Retry</Button>} />
+          </Card>
+        )}
       </div>
     );
 

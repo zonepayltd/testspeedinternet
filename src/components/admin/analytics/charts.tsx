@@ -2,6 +2,7 @@
 
 // Chart + small display helpers for the admin Analytics / Visitors / Speed tests pages.
 // Palette validated (CVD + contrast) for both surfaces: light #fff, dark ink-900.
+import FirebaseSetup, { isFirebaseMissing } from "@/components/admin/FirebaseSetup";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Area, AreaChart, Bar, BarChart, CartesianGrid, Cell, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { CalendarRange, X } from "lucide-react";
@@ -439,6 +440,7 @@ export function Drawer({ open, onClose, title, subtitle, children, actions }: { 
 
 /** Error banner with retry. */
 export function ErrorBox({ message, onRetry }: { message: string; onRetry: () => void }) {
+  if (isFirebaseMissing(message)) return <FirebaseSetup />;
   return (
     <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700 dark:border-rose-400/20 dark:bg-rose-400/10 dark:text-rose-300">
       <span>Couldn’t load data: {message}</span>

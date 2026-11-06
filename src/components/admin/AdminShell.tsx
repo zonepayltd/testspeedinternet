@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { ChevronDown, ChevronRight, ExternalLink, Gauge, LogOut, Menu, Search, X } from "lucide-react";
+import { AlertTriangle, ChevronDown, ChevronRight, ExternalLink, Gauge, LogOut, Menu, Search, X } from "lucide-react";
 import ThemeToggle from "@/components/theme/ThemeToggle";
 import { NAV_GROUPS, activeNav, type NavItem } from "@/components/admin/dashboard/nav";
 import CommandPalette from "@/components/admin/dashboard/CommandPalette";
@@ -261,10 +261,32 @@ export default function AdminShell({ username, children }: { username: string; c
           </div>
         </header>
 
+        <FirebaseBanner />
         <main className="mx-auto w-full max-w-[1400px] px-4 py-6 sm:px-6 lg:px-8 lg:py-8">{children}</main>
       </div>
 
       <CommandPalette open={palette} onClose={() => setPalette(false)} onSignOut={logout} />
+    </div>
+  );
+}
+
+/** Slim warning shown on every admin page while this server has no Firebase key. */
+function FirebaseBanner() {
+  const [missing, setMissing] = useState(false);
+  useEffect(() => {
+    fetch("/api/admin/account", { cache: "no-store" })
+      .then((r) => r.json())
+      .then((d) => setMissing(d?.ok === true && d.firebase === false))
+      .catch(() => {});
+  }, []);
+  if (!missing) return null;
+  return (
+    <div className="border-b border-amber-200 bg-amber-50 px-4 py-2.5 text-sm text-amber-900 dark:border-amber-400/20 dark:bg-amber-400/10 dark:text-amber-200 sm:px-6 lg:px-8">
+      <div className="mx-auto flex max-w-[1400px] flex-wrap items-center gap-x-3 gap-y-1">
+        <AlertTriangle className="h-4 w-4 shrink-0" aria-hidden="true" />
+        <span className="font-medium">Firebase isn&apos;t connected on this server, so your data can&apos;t load.</span>
+        <Link href="/admin" className="font-semibold underline underline-offset-2">How to connect →</Link>
+      </div>
     </div>
   );
 }

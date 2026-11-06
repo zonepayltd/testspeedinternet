@@ -1,5 +1,6 @@
 "use client";
 
+import FirebaseSetup, { isFirebaseMissing } from "@/components/admin/FirebaseSetup";
 import { useMemo, useState } from "react";
 import { AlertTriangle, Brush, FileText, Globe2, Radio, RefreshCw, Smartphone, Trash2 } from "lucide-react";
 import { BarList, Button, Card, EmptyState, Flag, IconButton, PageHeader, SearchInput, Skeleton, StatCard, Table, TBody, THead, api, fmtNum, useAdminUI } from "@/components/admin/ui";
@@ -157,7 +158,7 @@ export default function OnlineNow() {
             <SearchInput value={q} onChange={setQ} placeholder="Filter by page, city, country, device…" className="max-w-sm" />
           </div>
           {error && !data ? (
-            <EmptyState icon={AlertTriangle} title="Couldn’t load online visitors" description={error} action={<Button icon={RefreshCw} onClick={() => reload()}>Retry</Button>} />
+            isFirebaseMissing(error) ? <div className="p-4"><FirebaseSetup compact /></div> : <EmptyState icon={AlertTriangle} title="Couldn’t load online visitors" description={error} action={<Button icon={RefreshCw} onClick={() => reload()}>Retry</Button>} />
           ) : !data ? (
             <div className="space-y-2.5 p-4">
               {Array.from({ length: 6 }, (_, i) => (
