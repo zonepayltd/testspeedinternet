@@ -327,17 +327,3 @@
     scroll-behavior: auto !important;
   }
 }
-
-/* ---------------- Hero backdrop: slow, subtle drift ---------------- */
-.hero-drift {
-  animation: hero-drift 24s ease-in-out infinite alternate;
-  will-change: transform;
-}
-@keyframes hero-drift {
-  from {
-    transform: scale(1.02) translate3d(0, 0, 0);
-  }
-  to {
-    transform: scale(1.07) translate3d(0, -1%, 0);
-  }
-}
