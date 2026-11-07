@@ -1,10 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { AlertTriangle, Building2, KeyRound, Database, Loader2, Megaphone, Save, Search, Settings, Share2, ShieldCheck, Smartphone, Star, type LucideIcon } from "lucide-react";
+import { AlertTriangle, AtSign, Building2, KeyRound, Database, Loader2, Megaphone, Save, Search, Settings, Share2, ShieldCheck, Smartphone, Star, type LucideIcon } from "lucide-react";
 import { Button, PageHeader, Skeleton, api, useAdminUI } from "@/components/admin/ui";
 import DataManager from "./DataManager";
 import SecurityPanel from "./SecurityPanel";
+import EmailPanel from "./EmailPanel";
 import { AdsTab, AppsTab, CaptchaTab, GeneralTab, SearchTab, SocialTab, TrustpilotTab, collectErrors, type TabId } from "./sections";
 import { EMPTY_CONFIG, type Config, type EnvInfo, type SetFn } from "./types";
 
@@ -12,6 +13,7 @@ const TABS: { id: TabId; label: string; icon: LucideIcon; desc: string }[] = [
   { id: "general", label: "General", icon: Building2, desc: "Brand info and integration overview" },
   { id: "search", label: "Search engines", icon: Search, desc: "Search Console, Bing and Google Analytics" },
   { id: "ads", label: "Ads", icon: Megaphone, desc: "AdSense publisher ID and ad switches" },
+  { id: "email", label: "Email", icon: AtSign, desc: "Mail server for confirmation and password-reset emails (Neo mail)" },
   { id: "security", label: "Login & security", icon: KeyRound, desc: "Admin username and password (Firebase)" },
   { id: "captcha", label: "Captcha", icon: ShieldCheck, desc: "Built-in slider puzzle" },
   { id: "apps", label: "Apps", icon: Smartphone, desc: "App store download links" },
@@ -161,6 +163,8 @@ export default function SettingsView({ initialTab = "general" }: { initialTab?: 
             <DataManager />
           ) : tab === "security" ? (
             <SecurityPanel />
+          ) : tab === "email" ? (
+            <EmailPanel />
           ) : loading ? (
             <div className="space-y-3 rounded-2xl border border-slate-200/80 bg-white p-5 dark:border-white/[0.08] dark:bg-ink-900">
               {Array.from({ length: 5 }).map((_, i) => (

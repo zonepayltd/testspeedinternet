@@ -10,6 +10,7 @@ import { commonMessages } from "@/i18n/messages/common";
 import { navMessages, type NavMessages } from "@/i18n/messages/nav";
 import ThemeToggle from "@/components/theme/ThemeToggle";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
+import AccountMenu, { MobileAccountLinks } from "@/components/account/AccountMenu";
 import { MENUS, POPULAR_GUIDES, isActive, type Menu, type MenuKey } from "@/components/nav/menu";
 
 export function Logo({ tagline }: { tagline?: string }) {
@@ -252,6 +253,7 @@ export default function Header() {
         <div className="flex items-center gap-1">
           <LanguageSwitcher className="hidden sm:block" />
           <ThemeToggle />
+          <AccountMenu />
           <button
             type="button"
             onClick={() => setMobile((v) => !v)}
@@ -297,6 +299,9 @@ export default function Header() {
                 );
               })}
             </ul>
+            <div className="mt-4 border-t border-slate-200 pt-4 dark:border-white/[0.08]">
+              <MobileAccountLinks />
+            </div>
             <div className="mt-4 border-t border-slate-200 pt-4 dark:border-white/[0.08]">
               <LanguageSwitcher full />
             </div>

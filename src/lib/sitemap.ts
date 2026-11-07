@@ -2,9 +2,12 @@ import "server-only";
 // XML sitemaps: an index at /sitemap.xml pointing to
 //   /sitemaps/pages.xml        – main pages in every language (with hreflang)
 //   /sitemaps/blog-<lang>.xml  – blog articles per language (with hreflang + cover image)
+//   /sitemaps/providers.xml    – provider review pages (only providers with published reviews)
 // People get a designed HTML sitemap at /sitemap instead (browsers are dropping XSLT styling).
 import { getPublishedPosts, postLocales, type Post } from "@/lib/posts";
 import { COMPANY } from "@/lib/company";
+import { adminConfigured } from "@/lib/firebaseAdmin";
+import { listProviders, type ProviderSummary } from "@/lib/reviews";
 import { LOCALES, LOCALE_META, lp, type Locale } from "@/i18n/config";
 
 const SITE = COMPANY.siteUrl;
@@ -20,6 +23,7 @@ export const STATIC_PAGES: { path: string; priority: number; freq: Freq }[] = [
   { path: "/tools/wifi-speed-test", priority: 0.8, freq: "weekly" },
   { path: "/guides/good-internet-speed", priority: 0.8, freq: "monthly" },
   { path: "/blog", priority: 0.8, freq: "daily" },
+  { path: "/providers", priority: 0.7, freq: "daily" },
   { path: "/how-it-works", priority: 0.6, freq: "monthly" },
   { path: "/faq", priority: 0.6, freq: "monthly" },
   { path: "/about", priority: 0.5, freq: "yearly" },
@@ -72,6 +76,11 @@ export async function sitemapIndex(): Promise<string> {
     const newest = Math.max(...posts.map((p) => p.updatedAt || p.createdAt || 0));
     files.push({ loc: `${SITE}/sitemaps/blog-${l}.xml`, lastmod: newest ? day(newest) : PAGES_UPDATED });
   }
+  const providers = await reviewedProviders();
+  if (providers.length) {
+    const newest = Math.max(...providers.map((p) => p.lastReviewAt || 0));
+    files.push({ loc: `${SITE}/sitemaps/providers.xml`, lastmod: newest ? day(newest) : PAGES_UPDATED });
+  }
   return `${HEAD}<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
 ${files.map((f) => `  <sitemap>\n    <loc>${esc(f.loc)}</loc>\n    <lastmod>${f.lastmod}</lastmod>\n  </sitemap>`).join("\n")}
 </sitemapindex>
@@ -113,6 +122,35 @@ ${alternates(path, available)}${img ? `\n    <image:image>\n      <image:loc>${e
   </url>`;
   });
   return `${HEAD}<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
+${items.join("\n")}
+</urlset>
+`;
+}
+
+async function reviewedProviders(): Promise<ProviderSummary[]> {
+  if (!adminConfigured) return [];
+  return (await listProviders(1000).catch(() => [] as ProviderSummary[])).filter((p) => p.count >= 1);
+}
+
+/** Provider review pages in every language (with hreflang). Null when no provider has reviews yet. */
+export async function providersSitemap(): Promise<string | null> {
+  const providers = await reviewedProviders();
+  if (!providers.length) return null;
+  const items: string[] = [];
+  for (const p of providers) {
+    const path = `/providers/${p.slug}`;
+    const lastmod = p.lastReviewAt ? day(p.lastReviewAt) : PAGES_UPDATED;
+    for (const l of LOCALES) {
+      items.push(`  <url>
+    <loc>${esc(url(l, path))}</loc>
+    <lastmod>${lastmod}</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>${l === "en" ? "0.6" : "0.5"}</priority>
+${alternates(path, LOCALES)}
+  </url>`);
+    }
+  }
+  return `${HEAD}<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">
 ${items.join("\n")}
 </urlset>
 `;

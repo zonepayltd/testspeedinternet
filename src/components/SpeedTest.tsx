@@ -52,6 +52,8 @@ import {
 import { addToHistory, clearHistory, loadHistory, type HistoryEntry } from "./speedtest/history";
 import { ProviderLogo } from "./ip/shared";
 import { ispBrand } from "@/lib/isp";
+import AfterTest from "@/components/aftertest/AfterTest";
+import type { FinishedTest } from "@/components/aftertest/types";
 import { visitorId } from "./Tracker";
 
 /** Report speed-test usage to the admin dashboard (fire-and-forget). */
@@ -178,6 +180,7 @@ export default function SpeedTest({ mode = "full" }: { mode?: Mode }) {
 
   // Latest connection info / server for analytics without re-creating `run`.
   const infoRef = useRef<ConnInfo | null>(null);
+  const [finished, setFinished] = useState<FinishedTest | null>(null);
   const coloRef = useRef("");
   useEffect(() => {
     infoRef.current = info;
@@ -292,6 +295,10 @@ export default function SpeedTest({ mode = "full" }: { mode?: Mode }) {
       (typeof crypto !== "undefined" && crypto.randomUUID?.()) || `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
     const startedAt = performance.now();
     const ci = infoRef.current;
+    setFinished(null);
+    const brandRaw = ci?.ok ? ispBrand(ci.isp, ci.org, ci.as) : null;
+    // "Unknown provider" from the IP lookup isn't a real provider: don't offer a review for it.
+    const brand = brandRaw && brandRaw.name && !/^unknown\b/i.test(brandRaw.name) ? brandRaw : null;
     reportTest({
       testId,
       status: "started",
@@ -370,6 +377,19 @@ export default function SpeedTest({ mode = "full" }: { mode?: Mode }) {
       setLive(0);
       setPhase("done");
       setHistory(addToHistory({ t: Date.now(), mode, ...r }));
+      setFinished({
+        testId,
+        mode,
+        download: r.download,
+        upload: r.upload,
+        ping: r.ping,
+        jitter: r.jitter,
+        provider: brand?.name || "",
+        providerDomain: brand?.domain || "",
+        countryCode: ci?.countryCode || "",
+        city: ci?.city || "",
+        finishedAt: Date.now(),
+      });
       reportTest({ testId, status: "completed", ...r, durationMs: performance.now() - startedAt, server: coloRef.current });
       setAnnounce(`${t.live.finished} ${summaryLines(r, t, locale).join(". ")}`);
     } catch (e) {
@@ -664,6 +684,9 @@ export default function SpeedTest({ mode = "full" }: { mode?: Mode }) {
           )}
         </section>
       )}
+
+      {/* Rate your provider + save / compare with an account */}
+      {phase === "done" && finished && <AfterTest test={finished} />}
 
       {/* Local history */}
       {!testing && history.length > 0 && (

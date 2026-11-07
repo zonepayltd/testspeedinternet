@@ -20,13 +20,20 @@ function Logo() {
   );
 }
 
-function NavBadge({ item, online, unread }: { item: NavItem; online: number | null; unread: number }) {
+function NavBadge({ item, online, unread, reviews = 0 }: { item: NavItem; online: number | null; unread: number; reviews?: number }) {
   if (item.badge === "online" && online != null)
     return (
       <span className="ms-auto inline-flex items-center gap-1 rounded-full bg-emerald-50 px-1.5 py-px text-[11px] font-semibold tabular-nums text-emerald-700 ring-1 ring-inset ring-emerald-200/70 dark:bg-emerald-400/10 dark:text-emerald-300 dark:ring-emerald-400/20">
         <span className={`h-1.5 w-1.5 rounded-full ${online > 0 ? "bg-emerald-500" : "bg-slate-300 dark:bg-slate-600"}`} aria-hidden="true" />
         {online}
         <span className="sr-only"> online</span>
+      </span>
+    );
+  if (item.badge === "reviews" && reviews > 0)
+    return (
+      <span className="ms-auto inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-amber-500 px-1.5 text-[11px] font-semibold tabular-nums text-white" title="Reported or awaiting email confirmation">
+        {reviews > 99 ? "99+" : reviews}
+        <span className="sr-only"> reviews need attention</span>
       </span>
     );
   if (item.badge === "unread" && unread > 0)
@@ -47,6 +54,7 @@ export default function AdminShell({ username, children }: { username: string; c
   const [userMenu, setUserMenu] = useState(false);
   const [online, setOnline] = useState<number | null>(null);
   const [unread, setUnread] = useState(0);
+  const [reviewsBadge, setReviewsBadge] = useState(0);
   const userRef = useRef<HTMLDivElement>(null);
 
   // Badges: one cheap call returns the online count and unread messages.
@@ -60,6 +68,13 @@ export default function AdminShell({ username, children }: { username: string; c
           if (!alive || !d?.ok) return;
           setOnline(d.count ?? 0);
           setUnread(d.unread ?? 0);
+        })
+        .catch(() => {});
+      // Reviews needing attention: ones reported by visitors.
+      fetch("/api/admin/reviews?count=1", { cache: "no-store" })
+        .then((r) => r.json())
+        .then((d) => {
+          if (alive && d?.ok) setReviewsBadge(d.reported || 0);
         })
         .catch(() => {});
     };
@@ -149,7 +164,7 @@ export default function AdminShell({ username, children }: { username: string; c
                       {active && <span className="absolute inset-y-2 start-0 w-0.5 rounded-full bg-brand-600 dark:bg-brand-400" aria-hidden="true" />}
                       <Icon className={`h-[18px] w-[18px] shrink-0 ${active ? "text-brand-600 dark:text-brand-400" : "text-slate-400 group-hover:text-slate-600 dark:text-slate-500 dark:group-hover:text-slate-300"}`} aria-hidden="true" />
                       <span className="truncate">{item.label}</span>
-                      <NavBadge item={item} online={online} unread={unread} />
+                      <NavBadge item={item} online={online} unread={unread} reviews={reviewsBadge} />
                     </Link>
                   </li>
                 );

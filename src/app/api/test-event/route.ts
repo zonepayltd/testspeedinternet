@@ -1,6 +1,7 @@
 import { adminDb, adminConfigured } from "@/lib/firebaseAdmin";
 import { FieldValue } from "firebase-admin/firestore";
 import { parseUA } from "@/lib/ua";
+import { getSessionUserSnap } from "@/lib/userAuth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -31,10 +32,13 @@ export async function POST(request: Request) {
     if (status === "started") {
       const ua = request.headers.get("user-agent") || "";
       const { device, os, browser } = parseUA(ua);
-    if (device === "bot") return Response.json({ ok: true });
+      if (device === "bot") return Response.json({ ok: true });
+      // Logged-in visitors: attach the test to their account (shown in their dashboard).
+      const user = await getSessionUserSnap().catch(() => null);
       await ref.set(
         {
           status,
+          userId: user?.id || null,
           startedAt: now,
           ts: now,
           visitorId: String(b.visitorId || "").slice(0, 80),

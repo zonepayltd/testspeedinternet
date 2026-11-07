@@ -24,6 +24,7 @@ import {
   Share2,
   Timer,
 } from "lucide-react";
+import CommunityPanel from "./CommunityPanel";
 import { BarList, Badge, Button, Card, EmptyState, Flag, PageHeader, Segmented, Skeleton, StatCard, Table, TBody, THead, api, fmtNum, timeAgo, type Tone } from "@/components/admin/ui";
 import { DeviceIcon, LiveDot, PathLabel, RANGE_OPTIONS, SplitBar, cap, secondsAgo, useNow, usePoll, type OnlineUser, type RangeKey } from "./bits";
 import { Sparkline, TestsChart, TrafficChart, usePalette, type SeriesPoint } from "./charts";
@@ -275,6 +276,9 @@ export default function Overview() {
           </div>
         </KpiLink>
       </div>
+
+      {/* Users + reviews */}
+      <CommunityPanel />
 
       {/* Traffic + Live */}
       <div className="mt-4 grid gap-4 xl:grid-cols-3">

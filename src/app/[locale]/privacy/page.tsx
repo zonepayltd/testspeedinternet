@@ -5,7 +5,7 @@ import { localeFromParams, pageMetadata } from "@/i18n/server";
 import { privacyMessages } from "@/i18n/messages/legal/privacy";
 
 const PATH = "/privacy";
-const UPDATED = "2026-11-06";
+const UPDATED = "2026-11-07";
 
 type Props = { params: Promise<{ locale: string }> };
 

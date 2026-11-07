@@ -19,7 +19,7 @@ export default function SliderCaptcha({
   onChange,
   invalid = false,
 }: {
-  context: "contact" | "login";
+  context: "contact" | "login" | "signup" | "account" | "review";
   locale?: Locale;
   /** Called with the pass token when solved, or "" when it expires/resets. */
   onChange: (pass: string) => void;
@@ -92,7 +92,7 @@ function PuzzleDialog({
   onClose,
   onSolved,
 }: {
-  context: "contact" | "login";
+  context: "contact" | "login" | "signup" | "account" | "review";
   t: (typeof captchaMessages)["en"];
   onClose: () => void;
   onSolved: (pass: string) => void;

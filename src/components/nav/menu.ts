@@ -9,6 +9,7 @@ import {
   HelpCircle,
   Mail,
   Newspaper,
+  Star,
   ShieldCheck,
   Upload,
   Wifi,
@@ -32,6 +33,7 @@ export const MENUS: Menu[] = [
       { key: "upload", href: "/tools/upload-speed-test", icon: Upload },
       { key: "ping", href: "/tools/ping-test", icon: Activity },
       { key: "wifi", href: "/tools/wifi-speed-test", icon: Wifi },
+      { key: "providers", href: "/providers", icon: Star },
     ],
   },
   {

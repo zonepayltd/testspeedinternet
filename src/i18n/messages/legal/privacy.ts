@@ -24,7 +24,15 @@ const en: LegalDoc = {
       heading: "Information we process",
       body: [
         "When you run a speed test or use our IP tools, we process your public IP address and technical data such as approximate location (city and country), your internet service provider (ISP), connection type and browser information.",
-        "We use this data only to display your results and to power features like location, provider and IP reputation. We do not ask for your name, and we do not sell your personal data.",
+        "We use this data only to display your results and to power features like location, provider and IP reputation. Running a test never requires your name, and we do not sell your personal data.",
+      ],
+    },
+    {
+      id: "accounts-and-reviews",
+      heading: "Accounts and reviews",
+      body: [
+        "Creating an account is optional. If you sign up we store your full name, email address, phone number, country and a securely hashed password (never the password itself), together with the speed tests you run while signed in, so you can see your history and compare results. We send you an email to confirm your address and, if you ask, to reset your password.",
+        "If you write a review of your internet provider, we publish your rating, comment, first name, country and, when the review follows a test, the speeds measured. Your email address is never shown publicly; we use it only to confirm the review. You can edit your profile, export your data or delete your account (and your reviews) at any time from your dashboard, or by contacting {email}.",
       ],
     },
     {
@@ -122,7 +130,15 @@ const fr: LegalDoc = {
       heading: "Informations que nous traitons",
       body: [
         "Lorsque vous lancez un test de vitesse ou utilisez nos outils IP, nous traitons votre adresse IP publique ainsi que des données techniques telles que votre localisation approximative (ville et pays), votre fournisseur d'accès à Internet (FAI), votre type de connexion et des informations sur votre navigateur.",
-        "Nous utilisons ces données uniquement pour afficher vos résultats et faire fonctionner des fonctionnalités comme la localisation, l'identification du fournisseur et la réputation IP. Nous ne vous demandons pas votre nom et nous ne vendons pas vos données personnelles.",
+        "Nous utilisons ces données uniquement pour afficher vos résultats et faire fonctionner des fonctionnalités comme la localisation, l'identification du fournisseur et la réputation IP. Un test ne nécessite jamais votre nom, et nous ne vendons pas vos données personnelles.",
+      ],
+    },
+    {
+      id: "accounts-and-reviews",
+      heading: "Comptes et avis",
+      body: [
+        "La création d'un compte est facultative. Si vous vous inscrivez, nous conservons votre nom complet, votre adresse e-mail, votre numéro de téléphone, votre pays et un mot de passe chiffré de manière sécurisée (jamais le mot de passe lui-même), ainsi que les tests effectués en étant connecté, afin que vous puissiez consulter votre historique et comparer vos résultats. Nous vous envoyons un e-mail pour confirmer votre adresse et, à votre demande, pour réinitialiser votre mot de passe.",
+        "Si vous publiez un avis sur votre fournisseur d'accès, nous affichons votre note, votre commentaire, votre prénom, votre pays et, lorsque l'avis suit un test, les débits mesurés. Votre adresse e-mail n'est jamais affichée ; elle sert uniquement à confirmer l'avis. Vous pouvez modifier votre profil, exporter vos données ou supprimer votre compte (et vos avis) à tout moment depuis votre tableau de bord, ou en écrivant à {email}.",
       ],
     },
     {
@@ -220,7 +236,15 @@ const es: LegalDoc = {
       heading: "Información que tratamos",
       body: [
         "Cuando realizas un test de velocidad o utilizas nuestras herramientas IP, tratamos tu dirección IP pública y datos técnicos como tu ubicación aproximada (ciudad y país), tu proveedor de servicios de internet (ISP), el tipo de conexión y la información del navegador.",
-        "Utilizamos estos datos únicamente para mostrar tus resultados y hacer funcionar funciones como la ubicación, el proveedor y la reputación de la IP. No te pedimos tu nombre y no vendemos tus datos personales.",
+        "Utilizamos estos datos únicamente para mostrar tus resultados y hacer funcionar funciones como la ubicación, el proveedor y la reputación de la IP. Un test nunca requiere tu nombre y no vendemos tus datos personales.",
+      ],
+    },
+    {
+      id: "accounts-and-reviews",
+      heading: "Cuentas y reseñas",
+      body: [
+        "Crear una cuenta es opcional. Si te registras, guardamos tu nombre completo, correo electrónico, número de teléfono, país y una contraseña cifrada de forma segura (nunca la contraseña en sí), junto con los tests que realices con la sesión iniciada, para que puedas ver tu historial y comparar resultados. Te enviamos un correo para confirmar tu dirección y, si lo pides, para restablecer tu contraseña.",
+        "Si escribes una reseña de tu proveedor de internet, publicamos tu valoración, comentario, nombre, país y, cuando la reseña sigue a un test, las velocidades medidas. Tu correo nunca se muestra públicamente; solo lo usamos para confirmar la reseña. Puedes editar tu perfil, exportar tus datos o eliminar tu cuenta (y tus reseñas) en cualquier momento desde tu panel o escribiendo a {email}.",
       ],
     },
     {
@@ -318,7 +342,15 @@ const ar: LegalDoc = {
       heading: "المعلومات التي نعالجها",
       body: [
         "عند إجراء اختبار السرعة أو استخدام أدوات IP لدينا، نعالج عنوان IP العام الخاص بك وبيانات تقنية مثل موقعك التقريبي (المدينة والدولة)، ومزوّد خدمة الإنترنت (ISP)، ونوع الاتصال، ومعلومات المتصفح.",
-        "نستخدم هذه البيانات فقط لعرض نتائجك وتشغيل ميزات مثل تحديد الموقع والمزوّد وسمعة عنوان IP. لا نطلب اسمك، ولا نبيع بياناتك الشخصية.",
+        "نستخدم هذه البيانات فقط لعرض نتائجك وتشغيل ميزات مثل تحديد الموقع والمزوّد وسمعة عنوان IP. لا يتطلب إجراء الاختبار اسمك أبدًا، ولا نبيع بياناتك الشخصية.",
+      ],
+    },
+    {
+      id: "accounts-and-reviews",
+      heading: "الحسابات والتقييمات",
+      body: [
+        "إنشاء حساب أمر اختياري. عند التسجيل نحتفظ باسمك الكامل وبريدك الإلكتروني ورقم هاتفك ودولتك وكلمة مرور مشفّرة بشكل آمن (وليس كلمة المرور نفسها)، إضافة إلى الاختبارات التي تجريها أثناء تسجيل الدخول، لتتمكن من رؤية سجلّك ومقارنة النتائج. نرسل إليك رسالة لتأكيد بريدك، وعند طلبك لإعادة تعيين كلمة المرور.",
+        "عند كتابة تقييم لمزوّد الإنترنت، ننشر تقييمك وتعليقك واسمك الأول ودولتك، والسرعات المقاسة إذا جاء التقييم بعد اختبار. لا يظهر بريدك الإلكتروني للعامة أبدًا، ونستخدمه فقط لتأكيد التقييم. يمكنك تعديل ملفك أو تصدير بياناتك أو حذف حسابك (وتقييماتك) في أي وقت من لوحة التحكم، أو بمراسلتنا على {email}.",
       ],
     },
     {
@@ -416,7 +448,15 @@ const ru: LegalDoc = {
       heading: "Какие данные мы обрабатываем",
       body: [
         "Когда вы запускаете тест скорости или пользуетесь нашими IP-инструментами, мы обрабатываем ваш публичный IP-адрес и технические данные, такие как примерное местоположение (город и страна), ваш интернет-провайдер, тип подключения и сведения о браузере.",
-        "Мы используем эти данные только для отображения ваших результатов и работы таких функций, как определение местоположения, провайдера и репутации IP. Мы не запрашиваем ваше имя и не продаём ваши персональные данные.",
+        "Мы используем эти данные только для отображения ваших результатов и работы таких функций, как определение местоположения, провайдера и репутации IP. Для теста никогда не нужно ваше имя, и мы не продаём ваши персональные данные.",
+      ],
+    },
+    {
+      id: "accounts-and-reviews",
+      heading: "Аккаунты и отзывы",
+      body: [
+        "Создавать аккаунт не обязательно. При регистрации мы храним ваше полное имя, e-mail, номер телефона, страну и надёжно захешированный пароль (никогда не сам пароль), а также тесты, выполненные после входа, чтобы вы могли видеть историю и сравнивать результаты. Мы отправляем письмо для подтверждения адреса и, по вашему запросу, для сброса пароля.",
+        "Если вы оставляете отзыв о провайдере, мы публикуем вашу оценку, комментарий, имя, страну и — если отзыв оставлен после теста — измеренные скорости. Ваш e-mail никогда не показывается публично; он нужен только для подтверждения отзыва. Вы можете изменить профиль, выгрузить данные или удалить аккаунт (вместе с отзывами) в любое время в личном кабинете или написав на {email}.",
       ],
     },
     {

@@ -10,7 +10,8 @@ import "server-only";
 import crypto from "node:crypto";
 import zlib from "node:zlib";
 
-export type CaptchaContext = "contact" | "login";
+export type CaptchaContext = "contact" | "login" | "signup" | "account" | "review";
+export const CAPTCHA_CONTEXTS: readonly CaptchaContext[] = ["contact", "login", "signup", "account", "review"];
 
 export const W = 340; // image width (px)
 export const H = 170; // image height

@@ -1,17 +1,20 @@
 import {
+  AtSign,
   BarChart3,
   FileText,
   Gauge,
   LayoutDashboard,
   Mail,
   Megaphone,
+  MessageSquareText,
   Radio,
   Settings,
+  UserRound,
   Users,
   type LucideIcon,
 } from "lucide-react";
 
-export type NavItem = { href: string; label: string; icon: LucideIcon; badge?: "online" | "unread"; keywords?: string };
+export type NavItem = { href: string; label: string; icon: LucideIcon; badge?: "online" | "unread" | "reviews"; keywords?: string };
 export type NavGroup = { label: string; items: NavItem[] };
 
 /** Admin navigation — used by the sidebar, breadcrumb and the Cmd/Ctrl+K palette. */
@@ -30,6 +33,14 @@ export const NAV_GROUPS: NavGroup[] = [
       { href: "/admin/tests", label: "Speed tests", icon: Gauge, keywords: "download upload ping results" },
       { href: "/admin/visitors", label: "Visitors", icon: Users, keywords: "users people sessions" },
       { href: "/admin/messages", label: "Messages", icon: Mail, badge: "unread", keywords: "contact inbox email" },
+    ],
+  },
+  {
+    label: "Community",
+    items: [
+      { href: "/admin/users", label: "Users", icon: UserRound, keywords: "accounts members sign up registered profiles" },
+      { href: "/admin/reviews", label: "Reviews", icon: MessageSquareText, badge: "reviews", keywords: "ratings stars providers isp moderation comments" },
+      { href: "/admin/emails", label: "Emails", icon: AtSign, keywords: "addresses list export newsletter mail log smtp" },
     ],
   },
   {

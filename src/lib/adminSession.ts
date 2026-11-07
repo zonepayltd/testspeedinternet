@@ -11,6 +11,11 @@ const MAX_AGE_SECONDS = 60 * 60 * 8; // 8 hours
 
 let cachedSecret: string | null = null;
 
+/** Shared HMAC secret (also used, with a different prefix, for user sessions). */
+export async function getSessionSecret(): Promise<string> {
+  return secret();
+}
+
 async function secret(): Promise<string> {
   if (process.env.ADMIN_SESSION_SECRET) return process.env.ADMIN_SESSION_SECRET;
   if (cachedSecret) return cachedSecret;

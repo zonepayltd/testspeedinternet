@@ -22,7 +22,7 @@ import { COMPANY } from "@/lib/company";
 import { ExtLink, Note, Section, SecretField, SetPill, TextField, ToggleField, extractMetaContent, isUrl, validators } from "./fields";
 import type { Check, Checks, Config, EnvInfo, SetFn } from "./types";
 
-export type TabId = "general" | "search" | "ads" | "captcha" | "security" | "apps" | "social" | "trustpilot" | "data";
+export type TabId = "general" | "search" | "ads" | "email" | "captcha" | "security" | "apps" | "social" | "trustpilot" | "data";
 
 /** Every validation problem, tagged with the tab it lives on. */
 export function collectErrors(c: Config): { tab: TabId; label: string }[] {
