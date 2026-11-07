@@ -155,10 +155,12 @@ function VerifyGate({ email }: { email: string }) {
   const [resend, setResend] = useState<"idle" | "busy" | "sent" | "error">("idle");
   const [checking, setChecking] = useState(false);
   const [notYet, setNotYet] = useState(false);
+  const [resendErr, setResendErr] = useState("");
 
   const doResend = async () => {
     setResend("busy");
     const r = await apiJson("/api/account/resend", "POST", { locale });
+    setResendErr(r.ok ? "" : r.error === "mailFailed" ? t.errors.mailFailed : r.error === "tooMany" ? t.errors.tooMany : t.errors.generic);
     setResend(r.ok ? "sent" : "error");
   };
   const recheck = async () => {
@@ -204,7 +206,7 @@ function VerifyGate({ email }: { email: string }) {
           </div>
           <div aria-live="polite">
             {notYet && <p className="mt-3 flex items-center gap-2 text-sm text-amber-700 dark:text-amber-300"><MailWarning className="h-4 w-4 shrink-0" aria-hidden="true" />{t.dash.gateNotYet}</p>}
-            {resend === "error" && <p className="mt-3 text-sm text-rose-600 dark:text-rose-400">{t.errors.generic}</p>}
+            {resend === "error" && <p className="mt-3 text-sm text-rose-600 dark:text-rose-400">{resendErr || t.errors.generic}</p>}
           </div>
           <p className="muted mt-4 text-sm">{t.dash.gateSpam}</p>
         </div>

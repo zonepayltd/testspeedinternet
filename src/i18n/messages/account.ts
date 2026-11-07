@@ -18,6 +18,7 @@ const en = {
     badLogin: "Wrong email or password.", tooMany: "Too many attempts. Please wait a few minutes and try again.", disabled: "This account has been disabled. Contact support.",
     wrongPassword: "Your current password is not correct.", tokenInvalid: "This link is invalid or has expired.", notConfigured: "Accounts are temporarily unavailable.",
     unverified: "Please confirm your email address first.",
+    mailFailed: "We couldn't send the email right now. Please try again later or contact support@testspeedinternet.com.",
   },
   login: { title: "Welcome back", subtitle: "Sign in to see your saved tests and compare providers.", submit: "Sign in", forgot: "Forgot password?", noAccount: "New to TestSpeedInternet?", create: "Create a free account" },
   signup: {
@@ -81,6 +82,7 @@ const fr: AccountMessages = {
     badLogin: "E-mail ou mot de passe incorrect.", tooMany: "Trop de tentatives. Patientez quelques minutes puis réessayez.", disabled: "Ce compte a été désactivé. Contactez le support.",
     wrongPassword: "Votre mot de passe actuel est incorrect.", tokenInvalid: "Ce lien est invalide ou a expiré.", notConfigured: "Les comptes sont temporairement indisponibles.",
     unverified: "Veuillez d'abord confirmer votre adresse e-mail.",
+    mailFailed: "Impossible d'envoyer l'e-mail pour le moment. Réessayez plus tard ou écrivez à support@testspeedinternet.com.",
   },
   login: { title: "Bon retour", subtitle: "Connectez-vous pour retrouver vos tests et comparer les fournisseurs.", submit: "Se connecter", forgot: "Mot de passe oublié ?", noAccount: "Nouveau sur TestSpeedInternet ?", create: "Créer un compte gratuit" },
   signup: {
@@ -142,6 +144,7 @@ const es: AccountMessages = {
     badLogin: "Correo o contraseña incorrectos.", tooMany: "Demasiados intentos. Espera unos minutos y vuelve a intentarlo.", disabled: "Esta cuenta está desactivada. Contacta con soporte.",
     wrongPassword: "Tu contraseña actual no es correcta.", tokenInvalid: "Este enlace no es válido o ha caducado.", notConfigured: "Las cuentas no están disponibles temporalmente.",
     unverified: "Primero confirma tu dirección de correo.",
+    mailFailed: "No pudimos enviar el correo en este momento. Inténtalo más tarde o escribe a support@testspeedinternet.com.",
   },
   login: { title: "Hola de nuevo", subtitle: "Inicia sesión para ver tus tests guardados y comparar proveedores.", submit: "Iniciar sesión", forgot: "¿Olvidaste la contraseña?", noAccount: "¿Nuevo en TestSpeedInternet?", create: "Crea una cuenta gratis" },
   signup: {
@@ -203,6 +206,7 @@ const ar: AccountMessages = {
     badLogin: "البريد الإلكتروني أو كلمة المرور غير صحيحة.", tooMany: "محاولات كثيرة. انتظر بضع دقائق ثم حاول مجددًا.", disabled: "تم تعطيل هذا الحساب. تواصل مع الدعم.",
     wrongPassword: "كلمة المرور الحالية غير صحيحة.", tokenInvalid: "هذا الرابط غير صالح أو منتهي الصلاحية.", notConfigured: "الحسابات غير متاحة مؤقتًا.",
     unverified: "يرجى تأكيد بريدك الإلكتروني أولًا.",
+    mailFailed: "تعذّر إرسال الرسالة حاليًا. حاول لاحقًا أو راسلنا على support@testspeedinternet.com.",
   },
   login: { title: "مرحبًا بعودتك", subtitle: "سجّل الدخول لرؤية اختباراتك المحفوظة ومقارنة المزوّدين.", submit: "تسجيل الدخول", forgot: "نسيت كلمة المرور؟", noAccount: "جديد في TestSpeedInternet؟", create: "أنشئ حسابًا مجانيًا" },
   signup: {
@@ -264,6 +268,7 @@ const ru: AccountMessages = {
     badLogin: "Неверный e-mail или пароль.", tooMany: "Слишком много попыток. Подождите несколько минут.", disabled: "Аккаунт отключён. Обратитесь в поддержку.",
     wrongPassword: "Текущий пароль указан неверно.", tokenInvalid: "Ссылка недействительна или устарела.", notConfigured: "Аккаунты временно недоступны.",
     unverified: "Сначала подтвердите адрес электронной почты.",
+    mailFailed: "Не удалось отправить письмо. Попробуйте позже или напишите на support@testspeedinternet.com.",
   },
   login: { title: "С возвращением", subtitle: "Войдите, чтобы видеть сохранённые тесты и сравнивать провайдеров.", submit: "Войти", forgot: "Забыли пароль?", noAccount: "Впервые на TestSpeedInternet?", create: "Создать бесплатный аккаунт" },
   signup: {
