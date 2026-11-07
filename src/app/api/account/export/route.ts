@@ -1,6 +1,6 @@
 import { adminDb } from "@/lib/firebaseAdmin";
 import { toPublicUser } from "@/lib/userAuth";
-import { isResponse, requireUser, tsMs } from "../_util";
+import { isResponse, requireVerifiedUser, tsMs } from "../_util";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -9,7 +9,7 @@ const iso = (t: unknown) => (tsMs(t) ? new Date(tsMs(t)).toISOString() : null);
 
 // GET /api/account/export → JSON file with profile, tests and reviews.
 export async function GET() {
-  const u = await requireUser();
+  const u = await requireVerifiedUser();
   if (isResponse(u)) return u;
   const db = adminDb();
   const [tests, reviews] = await Promise.all([

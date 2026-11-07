@@ -1,7 +1,7 @@
 import { adminDb } from "@/lib/firebaseAdmin";
 import { ispBrand } from "@/lib/isp";
 import { getProviderSummary, providerSlug, type ProviderSummary } from "@/lib/reviews";
-import { isResponse, ok, requireUser, tsMs } from "../_util";
+import { isResponse, ok, requireVerifiedUser, tsMs } from "../_util";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -16,7 +16,7 @@ const avg = (v: number[]) => (v.length ? Math.round((v.reduce((a, b) => a + b, 0
 
 // GET /api/account/providers → the user's providers (from their completed tests) + community rating.
 export async function GET() {
-  const u = await requireUser();
+  const u = await requireVerifiedUser();
   if (isResponse(u)) return u;
   const snap = await adminDb().collection("tests").where("userId", "==", u.id).limit(1000).get();
   const groups = new Map<string, { name: string; domain: string; d: number[]; up: number[]; p: number[]; last: number }>();

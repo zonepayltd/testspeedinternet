@@ -1,5 +1,5 @@
 import { adminDb } from "@/lib/firebaseAdmin";
-import { body, err, isResponse, ok, requireUser, str, tsMs } from "../_util";
+import { body, err, isResponse, ok, requireVerifiedUser, str, tsMs } from "../_util";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -12,7 +12,7 @@ export type AccountTest = {
 // GET    /api/account/tests → { tests: AccountTest[] } (completed tests, newest first)
 // DELETE /api/account/tests { id } → removes it from the user's history (the anonymous test stays in site stats)
 export async function GET() {
-  const u = await requireUser();
+  const u = await requireVerifiedUser();
   if (isResponse(u)) return u;
   const snap = await adminDb().collection("tests").where("userId", "==", u.id).limit(1000).get();
   const { ispBrand } = await import("@/lib/isp");
@@ -43,7 +43,7 @@ export async function GET() {
 }
 
 export async function DELETE(req: Request) {
-  const u = await requireUser();
+  const u = await requireVerifiedUser();
   if (isResponse(u)) return u;
   const b = await body(req);
   const ids = (Array.isArray(b.ids) ? b.ids : [b.id]).map((x) => str(x, 64)).filter(Boolean).slice(0, 200);

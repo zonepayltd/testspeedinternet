@@ -1,6 +1,6 @@
 import { adminDb } from "@/lib/firebaseAdmin";
 import { unpublishReview } from "@/lib/reviews";
-import { body, err, isResponse, ok, requireUser, str, tsMs } from "../_util";
+import { body, err, isResponse, ok, requireVerifiedUser, str, tsMs } from "../_util";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -10,7 +10,7 @@ export type MyReview = { id: string; provider: string; providerSlug: string; pro
 // GET    /api/account/reviews → the user's reviews (any status), newest first
 // DELETE /api/account/reviews { id }
 export async function GET() {
-  const u = await requireUser();
+  const u = await requireVerifiedUser();
   if (isResponse(u)) return u;
   const snap = await adminDb().collection("reviews").where("userId", "==", u.id).limit(500).get();
   const reviews: MyReview[] = snap.docs
@@ -23,7 +23,7 @@ export async function GET() {
 }
 
 export async function DELETE(req: Request) {
-  const u = await requireUser();
+  const u = await requireVerifiedUser();
   if (isResponse(u)) return u;
   const id = str((await body(req)).id, 64);
   if (!id) return err("generic");

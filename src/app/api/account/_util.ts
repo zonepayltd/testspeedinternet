@@ -8,7 +8,7 @@ import { isLocale, type Locale } from "@/i18n/config";
 /** Error codes match accountMessages.errors keys so the UI can translate them. */
 export type ErrCode =
   | "generic" | "network" | "name" | "email" | "phone" | "country" | "short" | "weak" | "terms" | "captcha" | "captchaFailed"
-  | "emailTaken" | "badLogin" | "tooMany" | "disabled" | "wrongPassword" | "tokenInvalid" | "notConfigured" | "unauthorized";
+  | "emailTaken" | "badLogin" | "tooMany" | "disabled" | "wrongPassword" | "tokenInvalid" | "notConfigured" | "unauthorized" | "unverified";
 
 export const ok = (data: Record<string, unknown> = {}) => Response.json({ ok: true, ...data }, { headers: { "Cache-Control": "no-store" } });
 export const err = (error: ErrCode, status = 400, extra: Record<string, unknown> = {}) =>
@@ -30,6 +30,13 @@ export async function requireUser(): Promise<DocumentSnapshot | Response> {
   if (!adminConfigured) return err("notConfigured", 503);
   const snap = await getSessionUserSnap();
   return snap || err("unauthorized", 401);
+}
+
+/** Like requireUser, but the email must be confirmed (dashboard data is locked until then). */
+export async function requireVerifiedUser(): Promise<DocumentSnapshot | Response> {
+  const u = await requireUser();
+  if (u instanceof Response) return u;
+  return u.get("emailVerified") ? u : err("unverified", 403);
 }
 
 export const isResponse = (x: unknown): x is Response => x instanceof Response;

@@ -4,11 +4,11 @@
 import { useCallback, useEffect, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { Gauge, GitCompareArrows, LayoutDashboard, ListChecks, Loader2, MailWarning, Settings, Star, Wifi } from "lucide-react";
+import { CheckCircle2, Gauge, GitCompareArrows, LayoutDashboard, ListChecks, Loader2, LogOut, MailCheck, MailWarning, RefreshCw, Settings, Star, Wifi } from "lucide-react";
 import { useLocale } from "@/i18n/client";
 import { lp, pick } from "@/i18n/config";
 import { accountMessages, fmt } from "@/i18n/messages/account";
-import { apiJson, initials, useAccount } from "../useAccount";
+import { apiJson, initials, refreshAccount, signOut, useAccount } from "../useAccount";
 import { fmtDate, type AccountTest } from "./shared";
 import Overview from "./Overview";
 import TestsTab from "./TestsTab";
@@ -43,7 +43,7 @@ export default function Dashboard() {
     setTests(r.ok ? r.tests || [] : []);
   }, []);
   useEffect(() => {
-    if (user) loadTests();
+    if (user?.emailVerified) loadTests();
   }, [user, loadTests]);
 
   const go = useCallback(
@@ -69,6 +69,9 @@ export default function Dashboard() {
     const r = await apiJson("/api/account/resend", "POST", { locale });
     setResend(r.ok ? "sent" : "error");
   };
+
+  // The dashboard stays locked until the email address is confirmed.
+  if (!user.emailVerified) return <VerifyGate email={user.email} />;
 
   return (
     <div className="hero-bg min-h-[70vh]">
@@ -139,6 +142,83 @@ export default function Dashboard() {
           {tab === "reviews" && <ReviewsTab />}
           {tab === "settings" && <SettingsTab />}
         </div>
+      </div>
+    </div>
+  );
+}
+
+/** Shown instead of the dashboard while the email is not confirmed. */
+function VerifyGate({ email }: { email: string }) {
+  const locale = useLocale();
+  const t = pick(accountMessages, locale);
+  const router = useRouter();
+  const [resend, setResend] = useState<"idle" | "busy" | "sent" | "error">("idle");
+  const [checking, setChecking] = useState(false);
+  const [notYet, setNotYet] = useState(false);
+
+  const doResend = async () => {
+    setResend("busy");
+    const r = await apiJson("/api/account/resend", "POST", { locale });
+    setResend(r.ok ? "sent" : "error");
+  };
+  const recheck = async () => {
+    setChecking(true);
+    setNotYet(false);
+    await refreshAccount(); // re-renders the dashboard if the email is now confirmed
+    setChecking(false);
+    setNotYet(true);
+  };
+  // Confirmed in another tab? Re-check when the user comes back to this one.
+  useEffect(() => {
+    const onFocus = () => document.visibilityState === "visible" && refreshAccount();
+    document.addEventListener("visibilitychange", onFocus);
+    return () => document.removeEventListener("visibilitychange", onFocus);
+  }, []);
+
+  return (
+    <div className="hero-bg min-h-[70vh]">
+      <div aria-hidden="true" className="hero-glow" />
+      <div className="container relative flex max-w-xl flex-col items-center py-14 text-center md:py-20">
+        <span className="flex h-16 w-16 items-center justify-center rounded-2xl bg-brand-50 text-brand-600 ring-1 ring-inset ring-brand-100 dark:bg-brand-400/10 dark:text-brand-300 dark:ring-brand-400/20">
+          <MailCheck className="h-8 w-8" aria-hidden="true" />
+        </span>
+        <h1 className="mt-6 text-2xl font-extrabold tracking-tight text-slate-900 dark:text-white sm:text-3xl">{t.dash.gateTitle}</h1>
+        <p className="muted mt-3 text-[15px] leading-relaxed">{fmt(t.dash.gateText, { email })}</p>
+
+        <div className="card mt-8 w-full p-5 text-start sm:p-6">
+          <div className="flex flex-col gap-3 sm:flex-row">
+            <button type="button" onClick={recheck} disabled={checking} className="btn-primary flex-1 justify-center">
+              {checking ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : <CheckCircle2 className="h-4 w-4" aria-hidden="true" />}
+              {t.dash.gateRefresh}
+            </button>
+            {resend === "sent" ? (
+              <span className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-emerald-50 px-4 py-2.5 text-sm font-semibold text-emerald-700 dark:bg-emerald-400/10 dark:text-emerald-300">
+                <CheckCircle2 className="h-4 w-4" aria-hidden="true" /> {t.dash.resent}
+              </span>
+            ) : (
+              <button type="button" onClick={doResend} disabled={resend === "busy"} className="btn-secondary flex-1 justify-center">
+                {resend === "busy" ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : <RefreshCw className="h-4 w-4" aria-hidden="true" />}
+                {t.dash.resend}
+              </button>
+            )}
+          </div>
+          <div aria-live="polite">
+            {notYet && <p className="mt-3 flex items-center gap-2 text-sm text-amber-700 dark:text-amber-300"><MailWarning className="h-4 w-4 shrink-0" aria-hidden="true" />{t.dash.gateNotYet}</p>}
+            {resend === "error" && <p className="mt-3 text-sm text-rose-600 dark:text-rose-400">{t.errors.generic}</p>}
+          </div>
+          <p className="muted mt-4 text-sm">{t.dash.gateSpam}</p>
+        </div>
+
+        <button
+          type="button"
+          onClick={async () => {
+            await signOut();
+            router.push(lp(locale, "/account/login"));
+          }}
+          className="mt-6 inline-flex items-center gap-1.5 text-sm font-medium text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
+        >
+          <LogOut className="h-4 w-4 rtl:rotate-180" aria-hidden="true" /> {t.dash.gateOther}
+        </button>
       </div>
     </div>
   );
