@@ -1,6 +1,7 @@
 "use client";
 
 // Visitor dashboard: tabs (deep-linkable with ?tab=), data loaded from /api/account/*.
+import { REQUIRE_EMAIL_VERIFICATION } from "@/lib/features";
 import { useCallback, useEffect, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
@@ -43,7 +44,7 @@ export default function Dashboard() {
     setTests(r.ok ? r.tests || [] : []);
   }, []);
   useEffect(() => {
-    if (user?.emailVerified) loadTests();
+    if (user && (user.emailVerified || !REQUIRE_EMAIL_VERIFICATION)) loadTests();
   }, [user, loadTests]);
 
   const go = useCallback(
@@ -71,7 +72,7 @@ export default function Dashboard() {
   };
 
   // The dashboard stays locked until the email address is confirmed.
-  if (!user.emailVerified) return <VerifyGate email={user.email} />;
+  if (REQUIRE_EMAIL_VERIFICATION && !user.emailVerified) return <VerifyGate email={user.email} />;
 
   return (
     <div className="hero-bg min-h-[70vh]">
@@ -94,7 +95,7 @@ export default function Dashboard() {
         </div>
 
         {/* Verify banner */}
-        {!user.emailVerified && (
+        {REQUIRE_EMAIL_VERIFICATION && !user.emailVerified && (
           <div className="mt-6 flex flex-col gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-400/20 dark:bg-amber-400/10 dark:text-amber-100 sm:flex-row sm:items-center">
             <MailWarning className="h-5 w-5 shrink-0 text-amber-500" aria-hidden="true" />
             <p className="flex-1">{fmt(t.dash.verifyBanner, { email: user.email })}</p>

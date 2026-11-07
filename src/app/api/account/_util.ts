@@ -1,4 +1,5 @@
 // Shared helpers for /api/account/* routes (not a route itself).
+import { REQUIRE_EMAIL_VERIFICATION } from "@/lib/features";
 import "server-only";
 import type { DocumentSnapshot } from "firebase-admin/firestore";
 import { adminDb, adminConfigured } from "@/lib/firebaseAdmin";
@@ -36,6 +37,7 @@ export async function requireUser(): Promise<DocumentSnapshot | Response> {
 export async function requireVerifiedUser(): Promise<DocumentSnapshot | Response> {
   const u = await requireUser();
   if (u instanceof Response) return u;
+  if (!REQUIRE_EMAIL_VERIFICATION) return u;
   return u.get("emailVerified") ? u : err("unverified", 403);
 }
 

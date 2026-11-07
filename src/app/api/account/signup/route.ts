@@ -1,4 +1,5 @@
 import { isValidPhoneNumber } from "libphonenumber-js/min";
+import { REQUIRE_EMAIL_VERIFICATION } from "@/lib/features";
 import { adminConfigured } from "@/lib/firebaseAdmin";
 import { verifyPass } from "@/lib/captcha";
 import { clientIp, geoForRequest } from "@/lib/geo";
@@ -64,9 +65,11 @@ export async function POST(req: Request) {
 
   let mailSent = false;
   try {
+    if (REQUIRE_EMAIL_VERIFICATION) {
     const token = await issueToken({ type: "verify", email, uid, locale });
     const m = verifyEmailMail(locale, name.split(" ")[0], siteLink(locale, `/account/verify?token=${token}`, req));
     mailSent = (await sendMail({ to: email, ...m })).ok;
+    }
   } catch {
     mailSent = false;
   }

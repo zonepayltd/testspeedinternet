@@ -1,6 +1,7 @@
 "use client";
 
 // Sign in, sign up, forgot password and reset password forms.
+import { REQUIRE_EMAIL_VERIFICATION } from "@/lib/features";
 import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ArrowRight, Loader2, MailCheck } from "lucide-react";
@@ -163,6 +164,11 @@ export function SignupForm() {
       return;
     }
     await refreshAccount();
+    // No email confirmation for now: go straight to the dashboard.
+    if (!REQUIRE_EMAIL_VERIFICATION) {
+      router.push(safeNext(sp.get("next")) || lp(locale, "/account"));
+      return;
+    }
     setDone({ email: f.email.trim(), mailSent: !!r.mailSent });
   };
 

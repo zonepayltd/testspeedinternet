@@ -1,5 +1,6 @@
 "use client";
 
+import { REQUIRE_EMAIL_VERIFICATION } from "@/lib/features";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { BadgeCheck, Download, KeyRound, Loader2, MailWarning, Trash2, UserRound } from "lucide-react";
@@ -76,7 +77,7 @@ function ProfileForm({ user, t, locale }: { user: AccountUser; t: AccountMessage
           <Field label={t.settings.email} htmlFor="st-email">
             <div className="flex items-center gap-2">
               <input id="st-email" value={user.email} readOnly dir="ltr" className={`${inputCls()} bg-slate-50 text-slate-500 rtl:text-end dark:bg-white/[0.03]`} />
-              {user.emailVerified ? (
+              {user.emailVerified || !REQUIRE_EMAIL_VERIFICATION ? (
                 <span title={t.settings.verified} className="inline-flex shrink-0 items-center gap-1 text-xs font-semibold text-emerald-600 dark:text-emerald-400">
                   <BadgeCheck className="h-4 w-4" aria-hidden="true" /> <span className="hidden sm:inline">{t.settings.verified}</span>
                 </span>

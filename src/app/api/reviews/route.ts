@@ -1,4 +1,5 @@
 import { FieldValue } from "firebase-admin/firestore";
+import { REQUIRE_EMAIL_VERIFICATION } from "@/lib/features";
 import { adminDb, adminConfigured } from "@/lib/firebaseAdmin";
 import { getSessionUserSnap, isEmail, issueToken, normalizeEmail, rateLimit } from "@/lib/userAuth";
 import { verifyPass } from "@/lib/captcha";
@@ -102,7 +103,8 @@ export async function POST(request: Request) {
   const providerDomain = existingProvider.exists && existingProvider.get("domain") ? String(existingProvider.get("domain")) : known.domain && knownBrand ? known.domain : "";
 
   const geo = test ? null : await geoForRequest(request).catch(() => null);
-  const instantPublish = !!user && !!user.emailVerified;
+  // With email confirmation switched off (lib/features.ts), every review goes live right away.
+  const instantPublish = !REQUIRE_EMAIL_VERIFICATION || (!!user && !!user.emailVerified);
 
   const fields: Partial<ReviewDoc> = {
     providerSlug: slug,
